@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页风格预览 - 情感陪伴助手</title>
+    <style>
+        @font-face {
+            font-family: "Noto Sans SC";
+            src: url("/static/fonts/NotoSansSC-Regular.woff2") format("woff2");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "Noto Sans SC";
+            src: url("/static/fonts/NotoSansSC-Medium.woff2") format("woff2");
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "ZCOOL XiaoWei";
+            src: url("/static/fonts/ZCOOLXiaoWei-Regular.woff2") format("woff2");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        :root {
+            --font-body: "Noto Sans SC", sans-serif;
+            --font-display: "ZCOOL XiaoWei", serif;
+            --bg: #fdf8f3;
+            --text: #2f2a26;
+            --text-muted: #6f6660;
+            --accent: #e6a8a4;
+            --accent-2: #b9a7ff;
+            --card: rgba(255, 255, 255, 0.82);
+            --card-border: rgba(230, 168, 164, 0.25);
+            --line: rgba(47, 42, 38, 0.08);
+            --shadow: 0 24px 60px rgba(47, 42, 38, 0.12);
+            --chip-bg: rgba(230, 168, 164, 0.15);
+            --chip-text: #815d5b;
+            --btn-primary: linear-gradient(135deg, #e6a8a4, #b9a7ff);
+            --btn-ghost: rgba(47, 42, 38, 0.08);
+            --pattern: radial-gradient(circle at 1px 1px, rgba(230, 168, 164, 0.2) 1px, transparent 0);
+            --pattern-size: 28px 28px;
+            --pattern-opacity: 0.25;
+            --shape-1: rgba(255, 214, 208, 0.7);
+            --shape-2: rgba(191, 178, 255, 0.55);
+            --shape-3: rgba(255, 233, 206, 0.6);
+        }
+
+        [data-theme="gentle"] {
+            --font-body: "Noto Sans SC", sans-serif;
+            --font-display: "ZCOOL XiaoWei", serif;
+            --bg: radial-gradient(1200px circle at 10% 10%, #fceeea 0%, #f7f3ff 35%, #fdf8f1 72%);
+            --text: #4a3b39;
+            --text-muted: #7a6c6c;
+            --accent: #e6a8a4;
+            --accent-2: #c7b2ff;
+            --card: rgba(255, 255, 255, 0.86);
+            --card-border: rgba(230, 168, 164, 0.25);
+            --line: rgba(74, 59, 57, 0.12);
+            --shadow: 0 24px 60px rgba(74, 59, 57, 0.14);
+            --chip-bg: rgba(230, 168, 164, 0.18);
+            --chip-text: #815d5b;
+            --btn-primary: linear-gradient(135deg, #e6a8a4, #c7b2ff);
+            --btn-ghost: rgba(74, 59, 57, 0.08);
+            --pattern: radial-gradient(circle at 1px 1px, rgba(230, 168, 164, 0.25) 1px, transparent 0);
+            --pattern-size: 30px 30px;
+            --pattern-opacity: 0.28;
+            --shape-1: rgba(255, 214, 208, 0.72);
+            --shape-2: rgba(201, 191, 255, 0.55);
+            --shape-3: rgba(255, 233, 214, 0.6);
+        }
+
+        [data-theme="modern"] {
+            --font-body: "Noto Sans SC", sans-serif;
+            --font-display: "Noto Sans SC", sans-serif;
+            --bg: radial-gradient(1200px circle at 80% 0%, #f5f4f2 0%, #eef2f5 40%, #fdfdfc 75%);
+            --text: #2c2a28;
+            --text-muted: #6b6a68;
+            --accent: #f28b82;
+            --accent-2: #a1c4fd;
+            --card: rgba(255, 255, 255, 0.88);
+            --card-border: rgba(44, 42, 40, 0.08);
+            --line: rgba(44, 42, 40, 0.12);
+            --shadow: 0 22px 50px rgba(44, 42, 40, 0.14);
+            --chip-bg: rgba(242, 139, 130, 0.12);
+            --chip-text: #a04c45;
+            --btn-primary: linear-gradient(135deg, #f28b82, #f6b49a);
+            --btn-ghost: rgba(44, 42, 40, 0.08);
+            --pattern: linear-gradient(90deg, rgba(44, 42, 40, 0.06) 1px, transparent 1px),
+                       linear-gradient(180deg, rgba(44, 42, 40, 0.06) 1px, transparent 1px);
+            --pattern-size: 28px 28px;
+            --pattern-opacity: 0.22;
+            --shape-1: rgba(255, 224, 220, 0.6);
+            --shape-2: rgba(209, 230, 255, 0.55);
+            --shape-3: rgba(238, 237, 230, 0.8);
+        }
+
+        [data-theme="ritual"] {
+            --font-body: "Noto Sans SC", sans-serif;
+            --font-display: "Noto Serif SC", serif;
+            --bg: radial-gradient(1100px circle at 15% 0%, #fdf6e9 0%, #fbf0de 45%, #f6ede1 80%);
+            --text: #3b2f26;
+            --text-muted: #7a6c60;
+            --accent: #c98b4f;
+            --accent-2: #e0b177;
+            --card: rgba(255, 250, 242, 0.9);
+            --card-border: rgba(201, 139, 79, 0.25);
+            --line: rgba(59, 47, 38, 0.12);
+            --shadow: 0 26px 62px rgba(59, 47, 38, 0.16);
+            --chip-bg: rgba(201, 139, 79, 0.16);
+            --chip-text: #8a5d3b;
+            --btn-primary: linear-gradient(135deg, #c98b4f, #e0b177);
+            --btn-ghost: rgba(59, 47, 38, 0.08);
+            --pattern: repeating-linear-gradient(45deg, rgba(201, 139, 79, 0.12) 0, rgba(201, 139, 79, 0.12) 1px, transparent 1px, transparent 16px);
+            --pattern-size: 24px 24px;
+            --pattern-opacity: 0.3;
+            --shape-1: rgba(241, 215, 186, 0.7);
+            --shape-2: rgba(236, 201, 157, 0.6);
+            --shape-3: rgba(255, 243, 224, 0.7);
+        }
+
+        [data-theme="playful"] {
+            --font-body: "Noto Sans SC", sans-serif;
+            --font-display: "ZCOOL KuaiLe", sans-serif;
+            --bg: radial-gradient(1200px circle at 85% 10%, #fdf1ff 0%, #f1f7ff 45%, #fff9e9 80%);
+            --text: #2f2b32;
+            --text-muted: #6b6770;
+            --accent: #ff8ec6;
+            --accent-2: #3ad4c6;
+            --card: rgba(255, 255, 255, 0.88);
+            --card-border: rgba(255, 142, 198, 0.25);
+            --line: rgba(47, 43, 50, 0.1);
+            --shadow: 0 26px 56px rgba(47, 43, 50, 0.16);
+            --chip-bg: rgba(58, 212, 198, 0.16);
+            --chip-text: #1d7f77;
+            --btn-primary: linear-gradient(135deg, #ff8ec6, #ffb86b);
+            --btn-ghost: rgba(47, 43, 50, 0.08);
+            --pattern: radial-gradient(circle at 1px 1px, rgba(58, 212, 198, 0.22) 1px, transparent 0);
+            --pattern-size: 22px 22px;
+            --pattern-opacity: 0.3;
+            --shape-1: rgba(255, 208, 238, 0.8);
+            --shape-2: rgba(170, 246, 236, 0.6);
+            --shape-3: rgba(255, 229, 185, 0.7);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: var(--font-body);
+            color: var(--text);
+            background: var(--bg);
+            transition: background 0.6s ease;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: var(--pattern);
+            background-size: var(--pattern-size);
+            opacity: var(--pattern-opacity);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page {
+            width: min(1120px, 92vw);
+            margin: 32px auto 80px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 20px 0 10px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand-badge {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #fff;
+            font-size: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .brand-title {
+            font-family: var(--font-display);
+            font-size: clamp(22px, 2.4vw, 28px);
+            letter-spacing: 0.02em;
+        }
+
+        .brand-sub {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .theme-switcher {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .theme-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .theme-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .theme-btn.active {
+            color: var(--text);
+            background: rgba(0, 0, 0, 0.06);
+            font-weight: 600;
+        }
+
+        .hero {
+            margin-top: 28px;
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 28px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+            border-radius: 24px;
+            padding: 28px;
+            backdrop-filter: blur(16px);
+        }
+
+        .hero-card {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            animation: rise 0.6s ease forwards;
+        }
+
+        .hero-tag {
+            align-self: flex-start;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .hero-card h1 {
+            margin: 0;
+            font-family: var(--font-display);
+            font-size: clamp(28px, 3vw, 36px);
+            line-height: 1.2;
+        }
+
+        .hero-card p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chip {
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            font-size: 13px;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .btn {
+            border: none;
+            padding: 12px 22px;
+            border-radius: 999px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn.primary {
+            color: #fff;
+            background: var(--btn-primary);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn.primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn.ghost {
+            background: var(--btn-ghost);
+            color: var(--text);
+        }
+
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text);
+            border: 1px solid var(--line);
+        }
+
+        .side-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .info-card .info-header {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--line);
+            font-size: 14px;
+        }
+
+        .info-line strong {
+            font-weight: 600;
+        }
+
+        .code-box {
+            margin: 14px 0 18px;
+            padding: 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px dashed var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .code-box .code {
+            font-family: var(--font-display);
+            font-size: 20px;
+            color: var(--accent);
+            letter-spacing: 0.12em;
+        }
+
+        .ritual-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ritual-card::after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -40px;
+            top: -40px;
+            border-radius: 40px;
+            background: linear-gradient(135deg, var(--accent), transparent);
+            opacity: 0.4;
+        }
+
+        .ritual-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .ritual-card p {
+            margin: 0 0 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .ritual-steps {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ritual-steps span {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            font-size: 12px;
+        }
+
+        .feature-grid {
+            margin-top: 28px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .feature {
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        .feature h3 {
+            margin: 0 0 8px;
+            font-size: 16px;
+        }
+
+        .feature p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .ritual-demo {
+            margin-top: 30px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .ritual-header h2 {
+            margin: 0 0 8px;
+            font-family: var(--font-display);
+            font-size: 20px;
+        }
+
+        .ritual-header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .ritual-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .ritual-demo-card {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 260px;
+        }
+
+        .ritual-demo-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .ritual-demo-desc {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .ritual-stage {
+            position: relative;
+            height: 150px;
+            border-radius: 18px;
+            border: 1px dashed var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+        }
+
+        .ritual-center {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #fff;
+            font-size: 22px;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.15);
+            z-index: 1;
+        }
+
+        .ritual-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            animation: drift-out var(--dur, 2s) ease-out forwards;
+            opacity: 0;
+        }
+
+        .particle.emoji {
+            font-size: 16px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+        }
+
+        .particle.star {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent-2);
+            box-shadow: 0 0 10px rgba(199, 178, 255, 0.8);
+        }
+
+        .particle.dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px rgba(230, 168, 164, 0.6);
+        }
+
+        .glow-ring {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 1px solid rgba(230, 168, 164, 0.6);
+            box-shadow: 0 0 40px rgba(230, 168, 164, 0.45);
+            transform: translate(-50%, -50%) scale(0.6);
+            animation: glow 1.6s ease-out forwards;
+        }
+
+        .ritual-center.pulse {
+            animation: ritual-pulse 0.9s ease;
+        }
+
+        @keyframes drift-out {
+            0% {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(var(--scale, 1));
+                opacity: 0;
+            }
+        }
+
+        @keyframes glow {
+            0% {
+                opacity: 0.3;
+                transform: translate(-50%, -50%) scale(0.6);
+            }
+            60% {
+                opacity: 0.9;
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+
+        @keyframes ritual-pulse {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.12); }
+            100% { transform: scale(1); }
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .bg-shape {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(10px);
+            opacity: 0.9;
+            z-index: 0;
+            animation: float 12s ease-in-out infinite;
+        }
+
+        .bg-shape.s1 {
+            width: 260px;
+            height: 260px;
+            background: var(--shape-1);
+            top: 8%;
+            left: -80px;
+        }
+
+        .bg-shape.s2 {
+            width: 220px;
+            height: 220px;
+            background: var(--shape-2);
+            bottom: 10%;
+            right: -60px;
+            animation-duration: 14s;
+        }
+
+        .bg-shape.s3 {
+            width: 160px;
+            height: 160px;
+            background: var(--shape-3);
+            top: 45%;
+            right: 20%;
+            animation-duration: 16s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-16px); }
+        }
+
+        @keyframes rise {
+            from { transform: translateY(14px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 980px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ritual-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .theme-switcher {
+                width: 100%;
+                justify-content: space-between;
+                border-radius: 18px;
+            }
+
+            .theme-buttons {
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body data-theme="gentle">
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-badge">💝</div>
+                <div>
+                    <div class="brand-title">情感陪伴助手</div>
+                    <div class="brand-sub">在亲密关系里，温柔地站在你这边</div>
+                </div>
+            </div>
+            <div class="theme-switcher" role="tablist">
+                <span class="theme-label">风格</span>
+                <div class="theme-buttons">
+                    <button class="theme-btn active" data-theme="gentle" aria-pressed="true">温柔疗愈</button>
+                    <button class="theme-btn" data-theme="modern" aria-pressed="false">现代亲密</button>
+                    <button class="theme-btn" data-theme="ritual" aria-pressed="false">温暖仪式感</button>
+                    <button class="theme-btn" data-theme="playful" aria-pressed="false">轻潮玩</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero">
+                <div class="card hero-card">
+                    <span class="hero-tag">今日主题</span>
+                    <h1>把爱说清楚，也把你安顿好</h1>
+                    <p>用一段安全的对话，梳理情绪、表达需求、修复误解。你说的每一句话，都值得被温柔回应。</p>
+                    <div class="chip-row">
+                        <span class="chip">安心感</span>
+                        <span class="chip">情绪转译</span>
+                        <span class="chip">亲密修复</span>
+                        <span class="chip">倾听陪伴</span>
+                    </div>
+                    <div class="hero-actions">
+                        <button class="btn primary">进入个人教练</button>
+                        <button class="btn ghost">开启情感客厅</button>
+                    </div>
+                </div>
+                <div class="side-stack">
+                    <div class="card info-card">
+                        <div class="info-header">账号信息</div>
+                        <div class="info-line">
+                            <span>手机号</span>
+                            <strong>138****5279</strong>
+                        </div>
+                        <div class="info-line">
+                            <span>绑定状态</span>
+                            <strong>已绑定 ❤️</strong>
+                        </div>
+                        <div class="code-box">
+                            <span>我的绑定码</span>
+                            <span class="code">829403</span>
+                        </div>
+                        <button class="btn secondary">复制绑定码</button>
+                    </div>
+                    <div class="card ritual-card">
+                        <div class="ritual-title">今日小仪式</div>
+                        <p>对彼此说一句“我看见你今天的努力了”。仪式感不是形式，是把爱说出口。</p>
+                        <div class="ritual-steps">
+                            <span>1 分钟</span>
+                            <span>2 人</span>
+                            <span>1 句</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-grid">
+                <div class="feature">
+                    <h3>情绪地图</h3>
+                    <p>把复杂的心情拆成可理解的维度，帮助你用更清晰的语言表达自己。</p>
+                </div>
+                <div class="feature">
+                    <h3>关系记录</h3>
+                    <p>保存那些想记住的对话瞬间，持续构建你们的安全感。</p>
+                </div>
+                <div class="feature">
+                    <h3>陪伴式提醒</h3>
+                    <p>轻量而温柔的提醒，像在耳边轻声说“我在”。</p>
+                </div>
+            </section>
+
+            <section class="ritual-demo">
+                <div class="ritual-header">
+                    <h2>绑定仪式感动效示例</h2>
+                    <p>点击按钮预览 A/B/C 三种交互动效，感受不同的惊喜氛围。</p>
+                </div>
+                <div class="ritual-grid">
+                    <div class="card ritual-demo-card">
+                        <h3 class="ritual-demo-title">A · 温柔礼花（爱心 / 花瓣粒子）</h3>
+                        <p class="ritual-demo-desc">柔和的心形与花瓣从中心轻柔绽放，适合温柔疗愈的惊喜时刻。</p>
+                        <div class="ritual-stage" data-stage="a">
+                            <div class="ritual-center">💗</div>
+                            <div class="ritual-layer"></div>
+                        </div>
+                        <button class="btn primary ritual-trigger" data-effect="a">触发 A</button>
+                    </div>
+                    <div class="card ritual-demo-card">
+                        <h3 class="ritual-demo-title">B · 光晕 + 星尘</h3>
+                        <p class="ritual-demo-desc">一道柔光扩散，星尘慢慢升起，适合“被认真对待”的仪式感。</p>
+                        <div class="ritual-stage" data-stage="b">
+                            <div class="ritual-center">✨</div>
+                            <div class="ritual-layer"></div>
+                        </div>
+                        <button class="btn primary ritual-trigger" data-effect="b">触发 B</button>
+                    </div>
+                    <div class="card ritual-demo-card">
+                        <h3 class="ritual-demo-title">C · 心形礼花</h3>
+                        <p class="ritual-demo-desc">心形轨迹的烟花点阵缓慢展开，仪式感最强，适合绑定成功的高潮瞬间。</p>
+                        <div class="ritual-stage" data-stage="c">
+                            <div class="ritual-center">🎉</div>
+                            <div class="ritual-layer"></div>
+                        </div>
+                        <button class="btn primary ritual-trigger" data-effect="c">触发 C</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">这是首页视觉风格预览页面，用于对比四种气质方向。</footer>
+    </div>
+
+    <div class="bg-shape s1" aria-hidden="true"></div>
+    <div class="bg-shape s2" aria-hidden="true"></div>
+    <div class="bg-shape s3" aria-hidden="true"></div>
+
+    <script>
+        const buttons = document.querySelectorAll(".theme-btn");
+        const body = document.body;
+
+        function setTheme(theme) {
+            body.dataset.theme = theme;
+            buttons.forEach((btn) => {
+                const isActive = btn.dataset.theme === theme;
+                btn.classList.toggle("active", isActive);
+                btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+            });
+            localStorage.setItem("home-style-theme", theme);
+        }
+
+        buttons.forEach((btn) => {
+            btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+        });
+
+        const savedTheme = localStorage.getItem("home-style-theme");
+        if (savedTheme) {
+            setTheme(savedTheme);
+        }
+
+        const ritualButtons = document.querySelectorAll(".ritual-trigger");
+
+        function rand(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function clearLayer(layer) {
+            layer.innerHTML = "";
+        }
+
+        function pulseCenter(stage) {
+            const center = stage.querySelector(".ritual-center");
+            if (!center) return;
+            center.classList.remove("pulse");
+            void center.offsetWidth;
+            center.classList.add("pulse");
+        }
+
+        function spawnEmoji(layer, text, x, y, scale, dur) {
+            const particle = document.createElement("span");
+            particle.className = "particle emoji";
+            particle.textContent = text;
+            particle.style.setProperty("--x", `${x}px`);
+            particle.style.setProperty("--y", `${y}px`);
+            particle.style.setProperty("--scale", scale.toFixed(2));
+            particle.style.setProperty("--dur", `${dur}s`);
+            layer.appendChild(particle);
+        }
+
+        function spawnDot(layer, x, y, scale, dur, type) {
+            const particle = document.createElement("span");
+            particle.className = `particle ${type}`;
+            particle.style.setProperty("--x", `${x}px`);
+            particle.style.setProperty("--y", `${y}px`);
+            particle.style.setProperty("--scale", scale.toFixed(2));
+            particle.style.setProperty("--dur", `${dur}s`);
+            layer.appendChild(particle);
+        }
+
+        function effectA(stage, layer) {
+            const icons = ["💗", "🌸", "✨", "💞"];
+            const count = 26;
+            for (let i = 0; i < count; i += 1) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = rand(40, 120);
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                const scale = rand(0.8, 1.3);
+                const dur = rand(1.8, 2.6);
+                const icon = icons[Math.floor(Math.random() * icons.length)];
+                spawnEmoji(layer, icon, x, y, scale, dur);
+            }
+            setTimeout(() => clearLayer(layer), 2600);
+        }
+
+        function effectB(stage, layer) {
+            const ring = document.createElement("div");
+            ring.className = "glow-ring";
+            layer.appendChild(ring);
+            const count = 22;
+            for (let i = 0; i < count; i += 1) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = rand(30, 110);
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                const scale = rand(0.6, 1.2);
+                const dur = rand(1.6, 2.2);
+                spawnDot(layer, x, y, scale, dur, "star");
+            }
+            setTimeout(() => clearLayer(layer), 2200);
+        }
+
+        function effectC(stage, layer) {
+            const count = 36;
+            for (let i = 0; i <= count; i += 1) {
+                const t = (i / count) * Math.PI * 2;
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+                const scale = rand(0.8, 1.1);
+                const dur = rand(1.8, 2.4);
+                spawnDot(layer, x * 4.2, -y * 4.2, scale, dur, "dot");
+            }
+            setTimeout(() => clearLayer(layer), 2400);
+        }
+
+        ritualButtons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const effect = btn.dataset.effect;
+                const stage = document.querySelector(`[data-stage="${effect}"]`);
+                const layer = stage ? stage.querySelector(".ritual-layer") : null;
+                if (!stage || !layer) return;
+                clearLayer(layer);
+                pulseCenter(stage);
+                if (effect === "a") {
+                    effectA(stage, layer);
+                } else if (effect === "b") {
+                    effectB(stage, layer);
+                } else if (effect === "c") {
+                    effectC(stage, layer);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

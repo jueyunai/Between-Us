@@ -1,0 +1,1505 @@
+/* 公共样式 */
+
+/* 本地字体定义 */
+@font-face {
+    font-family: 'Noto Sans SC';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/static/fonts/NotoSansSC-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Sans SC';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/static/fonts/NotoSansSC-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ZCOOL XiaoWei';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/static/fonts/ZCOOLXiaoWei-Regular.woff2') format('woff2');
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@font-face {
+    font-family: "Noto Sans SC";
+    src: url("/static/fonts/NotoSansSC-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Noto Sans SC";
+    src: url("/static/fonts/NotoSansSC-Medium.woff2") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "ZCOOL XiaoWei";
+    src: url("/static/fonts/ZCOOLXiaoWei-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body.home-page,
+body.profile-page,
+body.login-page,
+body.coach-page,
+body.lounge-page {
+    --home-ink: #4a3b39;
+    --home-muted: #7a6c6c;
+    --home-accent: #e6a8a4;
+    --home-accent-2: #c7b2ff;
+    --home-card: rgba(255, 255, 255, 0.86);
+    --home-border: rgba(230, 168, 164, 0.24);
+    --home-line: rgba(74, 59, 57, 0.12);
+    --home-shadow: 0 26px 60px rgba(74, 59, 57, 0.14);
+    --home-chip: rgba(230, 168, 164, 0.18);
+    --home-chip-text: #815d5b;
+    font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(1200px circle at 12% 8%, #fceeea 0%, #f7f3ff 35%, #fdf8f1 75%);
+    color: var(--home-ink);
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 24px 0 40px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body.home-page::before,
+body.profile-page::before,
+body.login-page::before,
+body.coach-page::before,
+body.lounge-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(230, 168, 164, 0.22) 1px, transparent 0);
+    background-size: 28px 28px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+body.home-page .container {
+    max-width: 680px;
+    padding: 12px 16px 40px;
+    position: relative;
+    z-index: 1;
+}
+
+body.profile-page .container {
+    max-width: 540px;
+    padding: 12px 16px 32px;
+    position: relative;
+    z-index: 1;
+}
+
+body.login-page .container {
+    max-width: 440px;
+    padding: 12px 16px 32px;
+    position: relative;
+    z-index: 1;
+}
+
+body.coach-page .container,
+body.lounge-page .container {
+    max-width: 560px;
+    padding: 12px 16px 32px;
+    position: relative;
+    z-index: 1;
+}
+
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    color: #666;
+    margin-top: 10px;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+.link {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+}
+
+.link a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.link a:hover {
+    text-decoration: underline;
+}
+
+/* 登录页样式 */
+body.login-page .card {
+    background: var(--home-card);
+    border-radius: 26px;
+    padding: 28px 24px;
+    border: 1px solid var(--home-border);
+    box-shadow: var(--home-shadow);
+    backdrop-filter: blur(12px);
+}
+
+body.login-page .login-intro {
+    align-self: flex-start;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--home-chip);
+    color: var(--home-chip-text);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: inline-flex;
+}
+
+body.login-page .title {
+    text-align: left;
+    font-family: "ZCOOL XiaoWei", serif;
+    font-size: clamp(26px, 7vw, 34px);
+    color: var(--home-ink);
+    margin-bottom: 8px;
+    background: none;
+    -webkit-text-fill-color: initial;
+}
+
+body.login-page .login-subtitle {
+    color: var(--home-muted);
+    font-size: 14px;
+    margin-bottom: 22px;
+}
+
+body.login-page .input-group label {
+    color: var(--home-muted);
+    font-weight: 500;
+}
+
+body.login-page .input-group input {
+    border: 1px solid var(--home-border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+body.login-page .input-group input:focus {
+    border-color: var(--home-accent);
+    box-shadow: 0 0 0 3px rgba(230, 168, 164, 0.15);
+}
+
+body.login-page .btn {
+    border-radius: 999px;
+}
+
+body.login-page .btn-primary {
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    box-shadow: 0 12px 26px rgba(230, 168, 164, 0.35);
+}
+
+body.login-page .btn-secondary {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--home-ink);
+    border: 1px solid var(--home-line);
+}
+
+body.login-page .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.98);
+}
+
+body.login-page .link {
+    text-align: left;
+    color: var(--home-muted);
+}
+
+body.login-page .link a {
+    color: var(--home-accent);
+}
+
+/* 聊天室样式 */
+.chat-container {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.chat-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f5f5f5;
+}
+
+.message {
+    margin-bottom: 15px;
+    display: flex;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.user {
+    justify-content: flex-end;
+}
+
+.message.assistant,
+.message.partner {
+    justify-content: flex-start;
+}
+
+.message-content {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    word-wrap: break-word;
+}
+
+.message.user .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message.assistant .message-content {
+    background: white;
+    color: #333;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message.partner .message-content {
+    background: #e3f2fd;
+    color: #333;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-input {
+    padding: 15px 20px;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 25px;
+    font-size: 14px;
+}
+
+.chat-input input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.send-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.send-btn:hover {
+    transform: scale(1.05);
+}
+
+.ai-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.ai-icon:hover {
+    transform: scale(1.1);
+}
+
+/* 温柔疗愈聊天页 */
+body.coach-page .chat-container,
+body.lounge-page .chat-container {
+    background: var(--home-card);
+    border-radius: 26px;
+    border: 1px solid var(--home-border);
+    box-shadow: var(--home-shadow);
+    backdrop-filter: blur(16px);
+}
+
+body.coach-page .chat-header,
+body.lounge-page .chat-header {
+    background: linear-gradient(135deg, rgba(230, 168, 164, 0.22), rgba(199, 178, 255, 0.28));
+    color: var(--home-ink);
+    border-bottom: 1px solid var(--home-border);
+}
+
+body.coach-page .chat-header h2,
+body.lounge-page .chat-header h2 {
+    font-family: "ZCOOL XiaoWei", serif;
+}
+
+body.coach-page .back-btn,
+body.lounge-page .back-btn {
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--home-ink);
+    border: 1px solid var(--home-border);
+}
+
+body.coach-page .back-btn:hover,
+body.lounge-page .back-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+body.coach-page .chat-messages,
+body.lounge-page .chat-messages {
+    background: rgba(255, 255, 255, 0.55);
+}
+
+body.coach-page .message-content,
+body.lounge-page .message-content {
+    border-radius: 20px;
+}
+
+body.coach-page .message.user .message-content,
+body.lounge-page .message.user .message-content {
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    color: white;
+}
+
+body.coach-page .message.assistant .message-content,
+body.lounge-page .message.assistant .message-content {
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--home-ink);
+    border: 1px solid var(--home-border);
+    box-shadow: 0 8px 20px rgba(74, 59, 57, 0.08);
+}
+
+body.coach-page .message.partner .message-content,
+body.lounge-page .message.partner .message-content {
+    background: rgba(199, 178, 255, 0.2);
+    color: var(--home-ink);
+    border: 1px solid rgba(199, 178, 255, 0.35);
+}
+
+body.coach-page .chat-input,
+body.lounge-page .chat-input {
+    background: rgba(255, 255, 255, 0.85);
+    border-top: 1px solid var(--home-border);
+}
+
+body.coach-page .chat-input input,
+body.lounge-page .chat-input input {
+    border: 1px solid var(--home-border);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+body.coach-page .chat-input input:focus,
+body.lounge-page .chat-input input:focus {
+    border-color: var(--home-accent);
+    box-shadow: 0 0 0 3px rgba(230, 168, 164, 0.15);
+}
+
+body.coach-page .send-btn,
+body.lounge-page .send-btn {
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    box-shadow: 0 10px 22px rgba(230, 168, 164, 0.3);
+}
+
+body.lounge-page .ai-icon {
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    box-shadow: 0 10px 22px rgba(230, 168, 164, 0.35);
+}
+
+body.lounge-page .couple-row {
+    width: 100%;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+body.lounge-page .couple-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--home-border);
+    box-shadow: 0 10px 18px rgba(230, 168, 164, 0.18);
+}
+
+body.lounge-page .couple-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(230, 168, 164, 0.8), rgba(199, 178, 255, 0.9));
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+body.lounge-page .couple-name {
+    font-size: 13px;
+    color: var(--home-ink);
+    font-weight: 600;
+}
+
+body.lounge-page .couple-heart {
+    font-size: 16px;
+    filter: drop-shadow(0 6px 10px rgba(230, 168, 164, 0.35));
+}
+
+/* 温柔疗愈装饰 */
+body.login-page .gentle-shape,
+body.coach-page .gentle-shape,
+body.lounge-page .gentle-shape {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(6px);
+    opacity: 0.85;
+    z-index: 0;
+    pointer-events: none;
+}
+
+body.login-page .gentle-shape-1,
+body.coach-page .gentle-shape-1,
+body.lounge-page .gentle-shape-1 {
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 214, 208, 0.7);
+    top: 6%;
+    left: -90px;
+}
+
+body.login-page .gentle-shape-2,
+body.coach-page .gentle-shape-2,
+body.lounge-page .gentle-shape-2 {
+    width: 180px;
+    height: 180px;
+    background: rgba(201, 191, 255, 0.55);
+    bottom: 8%;
+    right: -70px;
+}
+
+body.login-page .gentle-shape-3,
+body.coach-page .gentle-shape-3,
+body.lounge-page .gentle-shape-3 {
+    width: 140px;
+    height: 140px;
+    background: rgba(255, 233, 214, 0.7);
+    top: 50%;
+    right: 14%;
+}
+
+/* 主页样式 */
+body.home-page .home-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: calc(100vh - 140px);
+}
+
+body.home-page .home-topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+body.home-page .home-title {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.home-page .home-intro {
+    align-self: flex-start;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--home-chip);
+    color: var(--home-chip-text);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+body.home-page .home-title h1 {
+    margin: 0;
+    font-size: clamp(28px, 8vw, 36px);
+    font-family: "ZCOOL XiaoWei", serif;
+    color: var(--home-ink);
+}
+
+body.home-page .home-title p {
+    margin: 0;
+    color: var(--home-muted);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+body.home-page .avatar-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 14px 28px rgba(230, 168, 164, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.home-page .avatar-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 32px rgba(230, 168, 164, 0.4);
+}
+
+body.home-page .entry-carousel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+}
+
+body.home-page .carousel-hint {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--home-muted);
+    text-transform: uppercase;
+}
+
+body.home-page .card-track {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 6px 4px 20px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    align-items: stretch;
+}
+
+body.home-page .card-track::-webkit-scrollbar {
+    display: none;
+}
+
+body.home-page .entry-card {
+    flex: 0 0 86%;
+    max-width: 360px;
+    scroll-snap-align: center;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 100%);
+    border: 1px solid var(--home-border);
+    border-radius: 26px;
+    padding: 22px;
+    min-height: clamp(380px, 58vh, 520px);
+    box-shadow: var(--home-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    text-decoration: none;
+    color: var(--home-ink);
+    transform-style: preserve-3d;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+body.home-page .entry-card::before {
+    content: "";
+    position: absolute;
+    right: -40px;
+    bottom: -50px;
+    width: 160px;
+    height: 160px;
+    border-radius: 60px;
+    background: radial-gradient(circle, rgba(199, 178, 255, 0.45), transparent 70%);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+body.home-page .entry-card > *:not(.entry-lock) {
+    position: relative;
+    z-index: 1;
+}
+
+body.home-page .entry-tag {
+    align-self: flex-start;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--home-chip);
+    color: var(--home-chip-text);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.home-page .entry-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+body.home-page .entry-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    color: white;
+    font-size: 22px;
+    box-shadow: 0 12px 24px rgba(230, 168, 164, 0.3);
+}
+
+body.home-page .entry-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+body.home-page .entry-subtitle {
+    font-size: 13px;
+    color: var(--home-muted);
+    margin-top: 4px;
+}
+
+body.home-page .entry-desc {
+    margin: 0;
+    font-size: 14px;
+    color: var(--home-muted);
+    line-height: 1.7;
+}
+
+body.home-page .entry-insight {
+    padding: 12px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--home-border);
+    box-shadow: 0 10px 20px rgba(74, 59, 57, 0.06);
+}
+
+body.home-page .entry-insight-label {
+    font-size: 12px;
+    color: var(--home-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+body.home-page .entry-insight-text {
+    font-size: 14px;
+    color: var(--home-ink);
+    line-height: 1.6;
+}
+
+body.home-page .entry-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+body.home-page .entry-meta-item {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--home-border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+body.home-page .entry-meta-item .meta-label {
+    font-size: 12px;
+    color: var(--home-muted);
+}
+
+body.home-page .entry-meta-item .meta-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--home-ink);
+}
+
+body.home-page .entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+body.home-page .entry-tags span {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--home-chip);
+    color: var(--home-chip-text);
+    font-size: 12px;
+}
+
+body.home-page .entry-action {
+    margin-top: auto;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--home-border);
+}
+
+body.home-page .entry-card.is-locked {
+    filter: grayscale(0.1);
+    opacity: 0.96;
+}
+
+body.home-page .entry-lock {
+    position: absolute;
+    inset: 0;
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(1.5px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 3;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+body.home-page .entry-card.is-locked .entry-lock {
+    opacity: 1;
+}
+
+/* 右上角三角形角标 */
+body.home-page .entry-lock-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 88px;
+    height: 88px;
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+    opacity: 0.95;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 5;
+}
+
+body.home-page .entry-lock-corner-text {
+    position: absolute;
+    top: 22px;
+    right: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    transform: rotate(45deg);
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 6;
+}
+
+body.home-page .carousel-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+body.home-page .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    background: rgba(74, 59, 57, 0.2);
+}
+
+body.home-page .carousel-dot.active {
+    width: 22px;
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+}
+
+@media (min-width: 720px) {
+    body.home-page .card-track {
+        justify-content: center;
+    }
+
+    body.home-page .entry-card {
+        flex-basis: 44%;
+        min-height: clamp(380px, 52vh, 480px);
+    }
+}
+
+/* 个人中心样式 */
+body.profile-page .profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+body.profile-page .profile-back {
+    border: 1px solid var(--home-border);
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--home-ink);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+body.profile-page .profile-title {
+    font-family: "ZCOOL XiaoWei", serif;
+    font-size: 18px;
+    color: var(--home-ink);
+}
+
+body.profile-page .profile-spacer {
+    width: 64px;
+}
+
+body.profile-page .home-container {
+    background: var(--home-card);
+    border-radius: 26px;
+    padding: 28px 24px;
+    width: 100%;
+    border: 1px solid var(--home-border);
+    box-shadow: var(--home-shadow);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(14px);
+}
+
+body.profile-page .home-container::after {
+    content: "";
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    right: -120px;
+    top: -90px;
+    border-radius: 60px;
+    background: linear-gradient(135deg, rgba(230, 168, 164, 0.4), transparent);
+    opacity: 0.6;
+}
+
+body.profile-page .home-banner {
+    text-align: left;
+    margin-bottom: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.profile-page .home-intro {
+    align-self: flex-start;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--home-chip);
+    color: var(--home-chip-text);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+body.profile-page .home-banner h1 {
+    font-size: clamp(26px, 6vw, 34px);
+    font-family: "ZCOOL XiaoWei", serif;
+    color: var(--home-ink);
+    margin-bottom: 0;
+    background: none;
+    -webkit-text-fill-color: initial;
+}
+
+body.profile-page .home-banner p {
+    color: var(--home-muted);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+body.profile-page .user-info {
+    background: rgba(255, 255, 255, 0.75);
+    padding: 18px;
+    border-radius: 18px;
+    margin-bottom: 18px;
+    border: 1px solid var(--home-border);
+    box-shadow: 0 10px 24px rgba(74, 59, 57, 0.08);
+}
+
+body.profile-page .user-info p {
+    margin: 8px 0;
+    color: var(--home-ink);
+    font-size: 14px;
+}
+
+body.profile-page .binding-code {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+body.profile-page .binding-code-value {
+    font-size: 20px;
+    color: var(--home-accent);
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+}
+
+body.profile-page .binding-code-copy {
+    border: none;
+    background: var(--home-chip);
+    color: var(--home-ink);
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+body.profile-page .binding-code-copy:hover {
+    background: rgba(230, 168, 164, 0.28);
+}
+
+body.profile-page .user-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+body.home-page .btn,
+body.profile-page .btn {
+    width: 100%;
+    border-radius: 999px;
+    font-size: 14px;
+    padding: 12px;
+}
+
+body.home-page .btn-primary,
+body.profile-page .btn-primary {
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    box-shadow: 0 12px 26px rgba(230, 168, 164, 0.35);
+}
+
+body.home-page .btn-secondary,
+body.profile-page .btn-secondary {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--home-ink);
+    margin-top: 0;
+    border: 1px solid var(--home-line);
+}
+
+body.home-page .btn-secondary:hover,
+body.profile-page .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.98);
+}
+
+body.home-page .modal-overlay,
+body.profile-page .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(74, 59, 57, 0.35);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+body.home-page .modal-card,
+body.profile-page .modal-card {
+    width: min(360px, 92vw);
+    background: var(--home-card);
+    border: 1px solid var(--home-border);
+    border-radius: 24px;
+    padding: 22px 20px;
+    box-shadow: var(--home-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+body.home-page .modal-card::after,
+body.profile-page .modal-card::after {
+    content: "";
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    right: -80px;
+    top: -80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(230, 168, 164, 0.4), transparent);
+    opacity: 0.6;
+}
+
+body.home-page .modal-title,
+body.profile-page .modal-title {
+    margin: 0 0 6px;
+    font-family: "ZCOOL XiaoWei", serif;
+    font-size: 22px;
+    color: var(--home-ink);
+}
+
+body.home-page .modal-subtitle,
+body.profile-page .modal-subtitle {
+    margin: 0 0 16px;
+    color: var(--home-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+body.home-page .modal-note,
+body.profile-page .modal-note {
+    margin: 0 0 16px;
+    color: var(--home-ink);
+    font-size: 13px;
+}
+
+body.home-page .modal-card .input-group input,
+body.profile-page .modal-card .input-group input {
+    border: 1px solid var(--home-border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+body.home-page .modal-card .input-group input:focus,
+body.profile-page .modal-card .input-group input:focus {
+    border-color: var(--home-accent);
+    box-shadow: 0 0 0 3px rgba(230, 168, 164, 0.15);
+}
+
+body.home-page .modal-actions,
+body.profile-page .modal-actions {
+    display: grid;
+    gap: 10px;
+}
+
+body.home-page .modal-tag,
+body.profile-page .modal-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--home-chip);
+    color: var(--home-chip-text);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+}
+
+body.home-page .modal-card-soft::after,
+body.profile-page .modal-card-soft::after {
+    opacity: 0.4;
+}
+
+body.home-page .modal-card-success,
+body.profile-page .modal-card-success {
+    text-align: center;
+}
+
+body.home-page .modal-card-success::after,
+body.profile-page .modal-card-success::after {
+    width: 200px;
+    height: 200px;
+    right: -100px;
+    top: -100px;
+}
+
+body.home-page .success-icon,
+body.profile-page .success-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+    color: white;
+    font-size: 26px;
+    margin: 0 auto 12px;
+    box-shadow: 0 14px 28px rgba(230, 168, 164, 0.35);
+}
+
+body.home-page .cooldown-panel,
+body.profile-page .cooldown-panel {
+    border-radius: 18px;
+    padding: 14px;
+    border: 1px solid var(--home-border);
+    background: rgba(255, 255, 255, 0.9);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+body.home-page .cooldown-label,
+body.profile-page .cooldown-label {
+    font-size: 12px;
+    color: var(--home-muted);
+    margin-bottom: 6px;
+}
+
+body.home-page .cooldown-time,
+body.profile-page .cooldown-time {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--home-ink);
+    letter-spacing: 0.08em;
+}
+
+body.home-page .cooldown-time.is-urgent,
+body.profile-page .cooldown-time.is-urgent {
+    color: var(--home-accent);
+    font-size: 26px;
+    animation: cooldownPulse 1.2s ease-in-out infinite;
+}
+
+body.home-page .cooldown-meta,
+body.profile-page .cooldown-meta {
+    font-size: 12px;
+    color: var(--home-muted);
+    margin-top: 6px;
+}
+
+body.home-page .btn.is-cooldown,
+body.profile-page .btn.is-cooldown {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--home-line);
+    color: var(--home-ink);
+}
+
+body.home-page .home-shape,
+body.profile-page .home-shape {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(6px);
+    opacity: 0.9;
+    z-index: 0;
+    pointer-events: none;
+}
+
+body.home-page .home-shape-1,
+body.profile-page .home-shape-1 {
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 214, 208, 0.7);
+    top: 8%;
+    left: -80px;
+}
+
+body.home-page .home-shape-2,
+body.profile-page .home-shape-2 {
+    width: 180px;
+    height: 180px;
+    background: rgba(201, 191, 255, 0.55);
+    bottom: 10%;
+    right: -70px;
+}
+
+body.home-page .home-shape-3,
+body.profile-page .home-shape-3 {
+    width: 140px;
+    height: 140px;
+    background: rgba(255, 233, 214, 0.7);
+    top: 55%;
+    right: 18%;
+}
+
+@media (min-width: 640px) {
+    body.profile-page .user-actions {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@keyframes cooldownPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* 绑定仪式动效 */
+.fireworks {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.fireworks.active {
+    opacity: 1;
+}
+
+.fireworks .ritual-glow {
+    position: absolute;
+    inset: -20%;
+    background: radial-gradient(circle, rgba(230, 168, 164, 0.45) 0%, rgba(199, 178, 255, 0.15) 45%, transparent 70%);
+    animation: ritualGlow 2.2s ease-out forwards;
+    opacity: 0;
+}
+
+.fireworks .ritual-particle {
+    position: absolute;
+    left: 50%;
+    top: 55%;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+    opacity: 0;
+    animation: ritualBloom var(--dur, 2.2s) ease-out forwards;
+    animation-delay: var(--delay, 0s);
+    filter: drop-shadow(0 6px 10px rgba(74, 59, 57, 0.12));
+}
+
+@keyframes ritualBloom {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(var(--scale, 1)) rotate(var(--rotate, 0deg));
+    }
+}
+
+@keyframes ritualGlow {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    50% {
+        opacity: 0.85;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+}
+
+/* Toast 提示样式 */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    background: rgba(74, 59, 57, 0.9);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(74, 59, 57, 0.25);
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: toastIn 0.3s ease forwards;
+    margin-bottom: 10px;
+    text-align: center;
+    max-width: 320px;
+    word-break: break-word;
+}
+
+.toast.toast-success {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(102, 187, 106, 0.95));
+}
+
+.toast.toast-error {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.95), rgba(239, 83, 80, 0.95));
+}
+
+.toast.toast-info {
+    background: linear-gradient(135deg, var(--home-accent, #e6a8a4), var(--home-accent-2, #c7b2ff));
+}
+
+.toast.toast-out {
+    animation: toastOut 0.3s ease forwards;
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}

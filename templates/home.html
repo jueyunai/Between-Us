@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页 - Between Us</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+</head>
+<body class="home-page">
+    <div class="container home-shell">
+        <header class="home-topbar">
+            <div class="home-title">
+                <div class="home-intro">今日主题 · 温柔疗愈</div>
+                <h1>💝 Between Us</h1>
+                <p>让亲密关系拥有更清晰的表达方式与被理解的空间。</p>
+            </div>
+            <button class="avatar-btn" onclick="window.location.href='/profile'" aria-label="打开个人中心">我</button>
+        </header>
+
+        <section class="entry-carousel">
+            <div class="carousel-hint">左右滑动，进入不同空间</div>
+            <div class="card-track" id="cardTrack">
+                <a href="/coach" class="entry-card entry-card-coach" data-role="coach" data-index="0" data-original="true">
+                    <div class="entry-tag">随时可用</div>
+                    <div class="entry-head">
+                        <div class="entry-icon">💬</div>
+                        <div>
+                            <div class="entry-title">个人教练</div>
+                            <div class="entry-subtitle">把情绪梳理清楚，把话说到心里</div>
+                        </div>
+                    </div>
+                    <p class="entry-desc">适合独处时的自我对话，温柔陪你梳理当下的感受与需求。</p>
+                    <div class="entry-insight">
+                        <div class="entry-insight-label">今日建议</div>
+                        <div class="entry-insight-text">先说“我现在的心情是…”，再说“我希望你能…”。</div>
+                    </div>
+                    <div class="entry-meta">
+                        <div class="entry-meta-item">
+                            <span class="meta-label">推荐时长</span>
+                            <span class="meta-value">3-5 分钟</span>
+                        </div>
+                        <div class="entry-meta-item">
+                            <span class="meta-label">陪伴方式</span>
+                            <span class="meta-value">一对一倾听</span>
+                        </div>
+                    </div>
+                    <div class="entry-tags">
+                        <span>情绪梳理</span>
+                        <span>表达练习</span>
+                        <span>轻负担</span>
+                    </div>
+                    <div class="entry-action">开始对话 →</div>
+                </a>
+
+                <a href="/lounge" class="entry-card entry-card-lounge is-locked" data-role="lounge" data-index="1" data-original="true" aria-disabled="true">
+                    <div class="entry-tag">双人空间</div>
+                    <div class="entry-head">
+                        <div class="entry-icon">💑</div>
+                        <div>
+                            <div class="entry-title">情感客厅</div>
+                            <div class="entry-subtitle">一起说清楚，一起被温柔回应</div>
+                        </div>
+                    </div>
+                    <p class="entry-desc">适合两个人的对话场景，让 AI 帮你们更好地理解彼此。</p>
+                    <div class="entry-insight">
+                        <div class="entry-insight-label">本周小仪式</div>
+                        <div class="entry-insight-text">说一句“我看见你今天的努力了”，再听对方回应。</div>
+                    </div>
+                    <div class="entry-meta">
+                        <div class="entry-meta-item">
+                            <span class="meta-label">推荐时长</span>
+                            <span class="meta-value">6-10 分钟</span>
+                        </div>
+                        <div class="entry-meta-item">
+                            <span class="meta-label">关系模式</span>
+                            <span class="meta-value">双人协作</span>
+                        </div>
+                    </div>
+                    <div class="entry-tags">
+                        <span>共同表达</span>
+                        <span>关系修复</span>
+                        <span>安全感</span>
+                    </div>
+                    <div class="entry-action">进入陪伴 →</div>
+                    <div class="entry-lock">
+                        <div class="entry-lock-corner"></div>
+                        <div class="entry-lock-corner-text">待绑定</div>
+                    </div>
+                </a>
+            </div>
+            <div class="carousel-dots">
+                <button class="carousel-dot active" data-index="0" aria-label="切换到个人教练"></button>
+                <button class="carousel-dot" data-index="1" aria-label="切换到情感客厅"></button>
+            </div>
+        </section>
+    </div>
+
+    <div class="home-shape home-shape-1" aria-hidden="true"></div>
+    <div class="home-shape home-shape-2" aria-hidden="true"></div>
+    <div class="home-shape home-shape-3" aria-hidden="true"></div>
+
+    <div id="bindGuideModal" class="modal-overlay">
+        <div class="modal-card modal-card-soft">
+            <div class="modal-tag" id="bindGuideTag">温柔提示</div>
+            <h2 class="modal-title" id="bindGuideTitle">绑定后解锁情感客厅</h2>
+            <p class="modal-subtitle" id="bindGuideDesc">先去个人中心完成绑定，我们会在情感客厅等你们。</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="goProfile()">去个人中心</button>
+                <button class="btn btn-secondary" onclick="closeBindGuideModal()">稍后再说</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cardTrack = document.getElementById('cardTrack');
+        const dots = Array.from(document.querySelectorAll('.carousel-dot'));
+        let cards = [];
+        let originalCards = [];
+        let loungeCards = [];
+        let cardSpacing = 0;
+        let loopWidth = 0;
+        let loopOffset = 0;
+        let isJumping = false;
+        let isInitialized = false;
+        const guideModal = document.getElementById('bindGuideModal');
+        const guideTitle = document.getElementById('bindGuideTitle');
+        const guideDesc = document.getElementById('bindGuideDesc');
+    
+        let loungeState = 'binding';
+    
+        function updateTransforms() {
+            if (!cardTrack || !isInitialized) return;
+            const trackRect = cardTrack.getBoundingClientRect();
+            const center = trackRect.left + trackRect.width / 2;
+            let closestIndex = 0;
+            let closestDist = Infinity;
+    
+            cards.forEach((card) => {
+                const rect = card.getBoundingClientRect();
+                const cardCenter = rect.left + rect.width / 2;
+                const dist = (cardCenter - center) / rect.width;
+                const rotate = Math.max(Math.min(dist * 16, 18), -18);
+                const scale = 1 - Math.min(Math.abs(dist) * 0.08, 0.14);
+                const opacity = 1 - Math.min(Math.abs(dist) * 0.22, 0.4);
+                card.style.transform = `perspective(900px) rotateY(${rotate}deg) scale(${scale})`;
+                card.style.opacity = opacity;
+    
+                if (Math.abs(cardCenter - center) < closestDist) {
+                    closestDist = Math.abs(cardCenter - center);
+                    closestIndex = Number(card.dataset.index || 0);
+                }
+            });
+    
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === closestIndex);
+            });
+        }
+    
+        function scrollToCard(index, smooth = true) {
+            const target = originalCards[index];
+            if (!target) return;
+            target.scrollIntoView({ 
+                behavior: smooth ? 'smooth' : 'instant', 
+                inline: 'center', 
+                block: 'nearest' 
+            });
+        }
+    
+        dots.forEach((dot) => {
+            dot.addEventListener('click', () => {
+                const index = Number(dot.dataset.index || 0);
+                scrollToCard(index);
+            });
+        });
+    
+        let scrollEndTimer = null;
+        
+        function normalizeScroll() {
+            if (!loopWidth || isJumping || !loopOffset || !isInitialized) return;
+            
+            // 使用防抖：只在滚动停止后才检测是否需要跳转
+            clearTimeout(scrollEndTimer);
+            scrollEndTimer = setTimeout(() => {
+                if (isJumping) return;
+                
+                const scrollLeft = cardTrack.scrollLeft;
+                // 计算当前应该在原始卡片区域的合理范围
+                // 原始卡片从 loopOffset 开始，跨越 loopWidth
+                // 只有滚动到克隆区域（超出原始区域一张卡片以上）才跳转
+                const minThreshold = loopOffset - cardSpacing * 0.8;
+                const maxThreshold = loopOffset + loopWidth - cardSpacing * 0.2;
+                
+                if (scrollLeft < minThreshold) {
+                    isJumping = true;
+                    cardTrack.style.scrollSnapType = 'none';
+                    cardTrack.style.scrollBehavior = 'auto';
+                    cardTrack.scrollLeft = scrollLeft + loopWidth;
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            cardTrack.style.scrollSnapType = 'x mandatory';
+                            cardTrack.style.scrollBehavior = 'smooth';
+                            isJumping = false;
+                        });
+                    });
+                } else if (scrollLeft > maxThreshold) {
+                    isJumping = true;
+                    cardTrack.style.scrollSnapType = 'none';
+                    cardTrack.style.scrollBehavior = 'auto';
+                    cardTrack.scrollLeft = scrollLeft - loopWidth;
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            cardTrack.style.scrollSnapType = 'x mandatory';
+                            cardTrack.style.scrollBehavior = 'smooth';
+                            isJumping = false;
+                        });
+                    });
+                }
+            }, 150); // 滚动停止 150ms 后才检测
+        }
+    
+        if (cardTrack) {
+            cardTrack.addEventListener('scroll', () => {
+                window.requestAnimationFrame(() => {
+                    normalizeScroll();
+                    updateTransforms();
+                });
+            });
+        }
+    
+        window.addEventListener('resize', () => {
+            measureCarousel();
+            recalculateLoopOffset();
+            updateTransforms();
+        });
+    
+        function createClone(card) {
+            const clone = card.cloneNode(true);
+            clone.dataset.clone = 'true';
+            clone.dataset.original = 'false';
+            clone.setAttribute('aria-hidden', 'true');
+            return clone;
+        }
+    
+        function measureCarousel() {
+            if (!cardTrack || !originalCards.length) return;
+            const allCards = Array.from(cardTrack.querySelectorAll('.entry-card'));
+            if (allCards.length > 1) {
+                cardSpacing = allCards[1].offsetLeft - allCards[0].offsetLeft;
+            } else if (allCards[0]) {
+                cardSpacing = allCards[0].offsetWidth;
+            }
+            loopWidth = cardSpacing * originalCards.length;
+        }
+    
+        function recalculateLoopOffset() {
+            const firstOriginal = originalCards[0];
+            if (firstOriginal && cardTrack) {
+                const left = firstOriginal.offsetLeft - cardTrack.offsetLeft;
+                const centerOffset = (cardTrack.clientWidth - firstOriginal.clientWidth) / 2;
+                loopOffset = left - centerOffset;
+            }
+        }
+    
+        function setupInfiniteCarousel() {
+            if (!cardTrack) return;
+                
+            // 初始化期间禁用 scroll-snap 避免冲突
+            cardTrack.style.scrollSnapType = 'none';
+            cardTrack.style.scrollBehavior = 'auto';
+                
+            originalCards = Array.from(cardTrack.querySelectorAll('.entry-card[data-original="true"]'));
+            if (!originalCards.length) {
+                originalCards = Array.from(cardTrack.querySelectorAll('.entry-card'));
+            }
+            originalCards.forEach((card, idx) => {
+                card.dataset.index = card.dataset.index || idx;
+                card.dataset.original = 'true';
+            });
+    
+            // 前后各克隆 2 组
+            const clones = 2;
+            for (let i = 0; i < clones; i += 1) {
+                const beforeClones = originalCards.map((card) => createClone(card));
+                beforeClones.slice().reverse().forEach((clone) => {
+                    cardTrack.prepend(clone);
+                });
+                const afterClones = originalCards.map((card) => createClone(card));
+                afterClones.forEach((clone) => {
+                    cardTrack.appendChild(clone);
+                });
+            }
+    
+            cards = Array.from(cardTrack.querySelectorAll('.entry-card'));
+            loungeCards = Array.from(cardTrack.querySelectorAll('[data-role="lounge"]'));
+                
+            // 等待 DOM 渲染完成后再测量和定位
+            requestAnimationFrame(() => {
+                measureCarousel();
+                recalculateLoopOffset();
+                    
+                // 定位到第一张原始卡片（个人教练）
+                cardTrack.scrollLeft = loopOffset;
+                    
+                // 再次等待确保滚动完成
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        // 重新启用 scroll-snap
+                        cardTrack.style.scrollSnapType = 'x mandatory';
+                        cardTrack.style.scrollBehavior = 'smooth';
+                        isInitialized = true;
+                        updateTransforms();
+                    });
+                });
+            });
+        }
+
+        function showBindGuideModal(reason) {
+            if (reason === 'cooldown') {
+                guideTitle.textContent = '冷静期中，暂不能进入情感客厅';
+                guideDesc.textContent = '可在个人中心查看倒计时，冷静期结束后将重新开放。';
+            } else {
+                guideTitle.textContent = '绑定后解锁情感客厅';
+                guideDesc.textContent = '先去个人中心完成绑定，我们会在情感客厅等你们。';
+            }
+            guideModal.style.display = 'flex';
+        }
+
+        function closeBindGuideModal() {
+            guideModal.style.display = 'none';
+        }
+
+        function goProfile() {
+            window.location.href = '/profile';
+        }
+
+        function setLoungeLocked(locked, reason) {
+            loungeState = reason;
+            if (!loungeCards.length) return;
+            loungeCards.forEach((card) => {
+                card.classList.toggle('is-locked', locked);
+                card.setAttribute('aria-disabled', locked ? 'true' : 'false');
+                const lockCornerText = card.querySelector('.entry-lock-corner-text');
+                if (!lockCornerText) return;
+
+                if (locked && reason === 'cooldown') {
+                    lockCornerText.textContent = '冷静中';
+                } else if (locked) {
+                    lockCornerText.textContent = '待绑定';
+                } else {
+                    lockCornerText.textContent = '';
+                }
+            });
+        }
+
+        function bindLoungeHandlers() {
+            if (!loungeCards.length) return;
+            loungeCards.forEach((card) => {
+                card.addEventListener('click', (event) => {
+                    if (card.classList.contains('is-locked')) {
+                        event.preventDefault();
+                        showBindGuideModal(loungeState === 'cooldown' ? 'cooldown' : 'binding');
+                    }
+                });
+            });
+        }
+
+        async function loadHomeState() {
+            try {
+                const response = await fetch('/api/user/info');
+                const data = await response.json();
+                if (!data.success) {
+                    window.location.href = '/';
+                    return;
+                }
+
+                const user = data.user;
+                const isCoolingDown = Boolean(user.unbind_at);
+                const canEnterLounge = user.has_partner && !isCoolingDown;
+                setLoungeLocked(!canEnterLounge, isCoolingDown ? 'cooldown' : 'binding');
+            } catch (error) {
+                console.error(error);
+                window.location.href = '/';
+            }
+        }
+
+        setupInfiniteCarousel();
+        bindLoungeHandlers();
+        loadHomeState();
+    </script>
+</body>
+</html>

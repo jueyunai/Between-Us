@@ -1,0 +1,20 @@
+{
+  "$schema": "https://modelscope.cn/api/v1/studios/deploy_schema.json",
+  "sdk_type": "docker",
+  "resource_configuration": "platform/2v-cpu-16g-mem",
+  "port": 7860,
+  "environment_variables": [
+    {
+      "name": "COZE_API_KEY",
+      "value": "pat_7jCqQJcm0pGwl1QvWzC7ZthqY3BNANdOLbV7h5eZE1cSU4r0fDUADEBzgtp3CyLu"
+    },
+    {
+      "name": "COZE_BOT_ID_COACH",
+      "value": "7595750315371413544"
+    },
+    {
+      "name": "COZE_BOT_ID_LOUNGE",
+      "value": "7596155063970758699"
+    }
+  ]
+}

@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人教练 - Between Us</title>  
+    <link rel="stylesheet" href="/static/css/common.css">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        /* 思考过程折叠样式 */
+        .thinking-container {
+            margin-bottom: 8px;
+        }
+
+        .thinking-toggle {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--home-accent);
+            font-size: 13px;
+            padding: 6px 10px;
+            background: var(--home-chip);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .thinking-toggle:hover {
+            background: rgba(230, 168, 164, 0.28);
+        }
+
+        .thinking-toggle .icon {
+            margin-right: 6px;
+            transition: transform 0.3s;
+        }
+
+        .thinking-toggle.collapsed .icon {
+            transform: rotate(-90deg);
+        }
+
+        .thinking-content {
+            padding: 10px 12px;
+            background: rgba(230, 168, 164, 0.08);
+            border-left: 3px solid var(--home-accent);
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            color: var(--home-muted);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .thinking-content.collapsed {
+            max-height: 0;
+            padding: 0 12px;
+            overflow: hidden;
+            opacity: 0;
+        }
+
+        .thinking-content.streaming {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* 流式输出光标 */
+        .streaming-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--home-accent);
+            margin-left: 2px;
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* 正文内容样式 */
+        .answer-content {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* 分享模态框样式 */
+        .share-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(74, 59, 57, 0.35);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(6px);
+            padding: 20px;
+        }
+
+        .share-modal.active {
+            display: flex;
+        }
+
+        .share-container {
+            background: var(--home-card);
+            border-radius: 22px;
+            width: min(92vw, 480px);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--home-border);
+            box-shadow: var(--home-shadow);
+        }
+
+        .share-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--home-line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .share-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--home-ink);
+            font-family: "ZCOOL XiaoWei", serif;
+        }
+
+        .share-close {
+            background: var(--home-chip);
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--home-ink);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .share-close:hover {
+            background: rgba(230, 168, 164, 0.28);
+        }
+
+        .share-select-all {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--home-line);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .share-select-all label {
+            cursor: pointer;
+            color: var(--home-muted);
+            font-size: 14px;
+        }
+
+        .share-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px 20px;
+            background: rgba(255, 255, 255, 0.55);
+        }
+
+        .share-message-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--home-line);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 8px 18px rgba(74, 59, 57, 0.08);
+        }
+
+        .share-message-item:hover {
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .share-message-item.selected {
+            background: rgba(230, 168, 164, 0.16);
+            border: 1px solid rgba(230, 168, 164, 0.35);
+        }
+
+        .share-message-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            accent-color: var(--home-accent);
+        }
+
+        .share-message-content {
+            flex: 1;
+        }
+
+        .share-message-role {
+            font-size: 13px;
+            color: var(--home-accent-2);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .share-message-item.user .share-message-role {
+            color: var(--home-accent);
+        }
+
+        .share-message-text {
+            font-size: 15px;
+            color: var(--home-ink);
+            line-height: 1.7;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .share-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--home-line);
+            display: flex;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .share-footer button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 999px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .share-btn-cancel {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--home-line);
+            color: var(--home-ink);
+        }
+
+        .share-btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .share-btn-generate {
+            background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+            border: none;
+            color: white;
+        }
+
+        .share-btn-generate:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(230, 168, 164, 0.45);
+        }
+
+        .share-btn-generate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 预览模态框 */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(74, 59, 57, 0.5);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+            backdrop-filter: blur(6px);
+        }
+
+        .preview-modal.active {
+            display: flex;
+        }
+
+        .preview-image-container {
+            max-width: 100%;
+            max-height: 70vh;
+            overflow: auto;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--home-border);
+            box-shadow: var(--home-shadow);
+            padding: 8px;
+        }
+
+        .preview-image-container img {
+            display: block;
+            max-width: 100%;
+        }
+
+        .preview-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .preview-actions button {
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preview-btn-back {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--home-line);
+            color: var(--home-ink);
+        }
+
+        .preview-btn-back:hover {
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .preview-btn-save {
+            background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+            border: none;
+            color: white;
+        }
+
+        .preview-btn-save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(230, 168, 164, 0.45);
+        }
+
+        /* 分享图片模板（隐藏，用于生成图片） */
+        .share-image-template {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 400px;
+            background: linear-gradient(180deg, #fdf8f1 0%, #ffffff 100%);
+            padding: 24px;
+            font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .share-image-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px dashed #e0d4f7;
+        }
+
+        .share-image-title {
+            font-size: 20px;
+            color: var(--home-accent);
+            margin: 0 0 8px 0;
+        }
+
+        .share-image-subtitle {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .share-image-messages {
+            margin-bottom: 20px;
+        }
+
+        .share-image-message {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 12px;
+        }
+
+        .share-image-message.user {
+            background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+            color: white;
+            margin-left: auto;
+            margin-right: 0;
+            width: fit-content;
+            max-width: calc(100% - 40px);
+            border-bottom-right-radius: 4px;
+        }
+
+        .share-image-message.assistant {
+            background: white;
+            color: #333;
+            margin-right: 40px;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .share-image-message-role {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .share-image-message-text {
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .share-image-footer {
+            text-align: center;
+            padding-top: 16px;
+            border-top: 1px dashed #e0d4f7;
+        }
+
+        .share-image-footer-text {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .share-image-footer-brand {
+            font-size: 14px;
+            color: var(--home-accent);
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        /* 返回按钮优化 */
+        .chat-header .back-btn {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid var(--home-border);
+            color: var(--home-ink);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(74, 59, 57, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .chat-header .back-btn:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateX(-2px);
+            box-shadow: 0 6px 16px rgba(74, 59, 57, 0.12);
+        }
+
+        .chat-header .back-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 分享按钮样式 */
+        .chat-header .share-btn {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid var(--home-border);
+            color: var(--home-ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(74, 59, 57, 0.08);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .chat-header .share-btn:hover {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 6px 16px rgba(74, 59, 57, 0.12);
+        }
+
+        .chat-header .share-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body class="coach-page">
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-header">
+                <button class="back-btn" onclick="window.location.href='/home'" aria-label="返回">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </button>
+                <h2>💬 个人教练</h2>
+                <button class="share-btn" onclick="openShareModal()" aria-label="分享">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <!-- 消息列表 -->
+            </div>
+
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="说说你的感受..." onkeypress="handleEnter(event)">
+                <button class="send-btn" onclick="sendMessage()" id="sendBtn">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="gentle-shape gentle-shape-1" aria-hidden="true"></div>
+    <div class="gentle-shape gentle-shape-2" aria-hidden="true"></div>
+    <div class="gentle-shape gentle-shape-3" aria-hidden="true"></div>
+
+    <!-- 分享选择模态框 -->
+    <div class="share-modal" id="shareModal">
+        <div class="share-container">
+            <div class="share-header">
+                <h3>📸 选择分享内容</h3>
+                <button class="share-close" onclick="closeShareModal()">&times;</button>
+            </div>
+            <div class="share-select-all">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                <label for="selectAll">全选</label>
+            </div>
+            <div class="share-messages" id="shareMessages">
+                <!-- 动态生成 -->
+            </div>
+            <div class="share-footer">
+                <button class="share-btn-cancel" onclick="closeShareModal()">取消</button>
+                <button class="share-btn-generate" id="generateBtn" onclick="generateShareImage()">生成分享图</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 预览模态框 -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-image-container">
+            <img id="previewImage" src="" alt="分享预览">
+        </div>
+        <div class="preview-actions">
+            <button class="preview-btn-back" onclick="closePreviewModal()">重新选择</button>
+            <button class="preview-btn-save" onclick="saveImage()">保存图片</button>
+        </div>
+    </div>
+
+    <!-- 分享图片模板 -->
+    <div class="share-image-template" id="shareImageTemplate">
+        <div class="share-image-header">
+            <h2 class="share-image-title">💖 情感陪伴助手</h2>
+            <p class="share-image-subtitle">个人教练对话记录</p>
+        </div>
+        <div class="share-image-messages" id="shareImageMessages">
+            <!-- 动态生成 -->
+        </div>
+        <div class="share-image-footer">
+            <p class="share-image-footer-text">用 AI 守护每一段亲密关系</p>
+            <p class="share-image-footer-brand">情感陪伴助手</p>
+        </div>
+    </div>
+
+    <script>
+        // Toast 提示函数
+        function showToast(message, type = 'info', duration = 2500) {
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('toast-out');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        let messages = [];
+        let isStreaming = false;
+        let selectedMessages = new Set();
+        let currentImageData = null;
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/coach/history');
+
+                if (response.status === 401) {
+                    showToast('登录已过期，请重新登录', 'error');
+                    window.location.href = '/';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    messages = data.messages;
+                    renderMessages();
+                }
+            } catch (error) {
+                console.error('加载历史记录失败', error);
+            }
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+
+            messages.forEach((msg, index) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.role}`;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+
+                if (msg.role === 'assistant' && msg.reasoning_content) {
+                    const thinkingContainer = document.createElement('div');
+                    thinkingContainer.className = 'thinking-container';
+
+                    const thinkingToggle = document.createElement('div');
+                    thinkingToggle.className = 'thinking-toggle collapsed';
+                    thinkingToggle.innerHTML = '<span class="icon">▼</span><span>🧠 思考过程（点击展开）</span>';
+
+                    const thinkingContent = document.createElement('div');
+                    thinkingContent.className = 'thinking-content collapsed';
+                    thinkingContent.textContent = msg.reasoning_content;
+
+                    thinkingToggle.onclick = function () {
+                        this.classList.toggle('collapsed');
+                        thinkingContent.classList.toggle('collapsed');
+                    };
+
+                    thinkingContainer.appendChild(thinkingToggle);
+                    thinkingContainer.appendChild(thinkingContent);
+                    contentDiv.appendChild(thinkingContainer);
+
+                    const answerContent = document.createElement('div');
+                    answerContent.className = 'answer-content';
+                    answerContent.textContent = msg.content;
+                    contentDiv.appendChild(answerContent);
+                } else {
+                    contentDiv.textContent = msg.content;
+                }
+
+                messageDiv.appendChild(contentDiv);
+                container.appendChild(messageDiv);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function createStreamingMessage() {
+            const container = document.getElementById('chatMessages');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            messageDiv.id = 'streamingMessage';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            const thinkingContainer = document.createElement('div');
+            thinkingContainer.className = 'thinking-container';
+            thinkingContainer.id = 'thinkingContainer';
+            thinkingContainer.style.display = 'none';
+
+            const thinkingToggle = document.createElement('div');
+            thinkingToggle.className = 'thinking-toggle';
+            thinkingToggle.innerHTML = '<span class="icon">▼</span><span>🧠 思考中...</span>';
+            thinkingToggle.onclick = function () {
+                this.classList.toggle('collapsed');
+                document.getElementById('thinkingContent').classList.toggle('collapsed');
+            };
+
+            const thinkingContent = document.createElement('div');
+            thinkingContent.className = 'thinking-content streaming';
+            thinkingContent.id = 'thinkingContent';
+
+            thinkingContainer.appendChild(thinkingToggle);
+            thinkingContainer.appendChild(thinkingContent);
+
+            const answerContent = document.createElement('div');
+            answerContent.className = 'answer-content';
+            answerContent.id = 'answerContent';
+
+            contentDiv.appendChild(thinkingContainer);
+            contentDiv.appendChild(answerContent);
+            messageDiv.appendChild(contentDiv);
+            container.appendChild(messageDiv);
+
+            container.scrollTop = container.scrollHeight;
+            return messageDiv;
+        }
+
+        async function sendMessage() {
+            if (isStreaming) return;
+
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            isStreaming = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            messages.push({ role: 'user', content });
+            renderMessages();
+            input.value = '';
+
+            createStreamingMessage();
+
+            let reasoningText = '';
+            let answerText = '';
+            let hasReasoning = false;
+
+            try {
+                const response = await fetch('/api/coach/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: content })
+                });
+
+                if (response.status === 401) {
+                    showToast('登录已过期，请重新登录', 'error');
+                    window.location.href = '/';
+                    return;
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+
+                                if (data.type === 'reasoning') {
+                                    if (!hasReasoning) {
+                                        hasReasoning = true;
+                                        document.getElementById('thinkingContainer').style.display = 'block';
+                                    }
+                                    reasoningText += data.content;
+                                    const thinkingEl = document.getElementById('thinkingContent');
+                                    thinkingEl.textContent = reasoningText;
+                                    thinkingEl.scrollTop = thinkingEl.scrollHeight;
+                                }
+                                else if (data.type === 'reasoning_done') {
+                                    const thinkingContent = document.getElementById('thinkingContent');
+                                    const thinkingToggle = document.querySelector('.thinking-toggle');
+                                    if (thinkingContent && thinkingToggle) {
+                                        thinkingContent.classList.remove('streaming');
+                                        thinkingContent.classList.add('collapsed');
+                                        thinkingToggle.classList.add('collapsed');
+                                        thinkingToggle.innerHTML = '<span class="icon">▼</span><span>🧠 思考过程（点击展开）</span>';
+                                    }
+                                }
+                                else if (data.type === 'content') {
+                                    answerText += data.content;
+                                    const answerEl = document.getElementById('answerContent');
+                                    answerEl.innerHTML = answerText + '<span class="streaming-cursor"></span>';
+
+                                    const container = document.getElementById('chatMessages');
+                                    container.scrollTop = container.scrollHeight;
+                                }
+                                else if (data.type === 'done') {
+                                    const answerEl = document.getElementById('answerContent');
+                                    answerEl.textContent = data.final_content || answerText;
+
+                                    if (data.final_content) {
+                                        messages.push({
+                                            role: 'assistant',
+                                            content: data.final_content,
+                                            reasoning_content: data.reasoning_content || null
+                                        });
+                                    }
+                                }
+                                else if (data.type === 'error') {
+                                    const answerEl = document.getElementById('answerContent');
+                                    answerEl.textContent = 'AI 暂时无法响应：' + data.content;
+                                }
+                            } catch (e) {
+                                console.error('Parse error:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                const answerEl = document.getElementById('answerContent');
+                if (answerEl) {
+                    answerEl.textContent = '网络错误，请检查连接。';
+                }
+            } finally {
+                isStreaming = false;
+                document.getElementById('sendBtn').disabled = false;
+            }
+        }
+
+        function handleEnter(event) {
+            if (event.key === 'Enter' && !isStreaming) {
+                sendMessage();
+            }
+        }
+
+        // ========== 分享功能 ==========
+        function openShareModal() {
+            if (messages.length === 0) {
+                showToast('暂无聊天记录', 'info');
+                return;
+            }
+
+            selectedMessages.clear();
+            document.getElementById('selectAll').checked = false;
+            renderShareMessages();
+            document.getElementById('shareModal').classList.add('active');
+            updateGenerateButton();
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.remove('active');
+        }
+
+        function renderShareMessages() {
+            const container = document.getElementById('shareMessages');
+            container.innerHTML = '';
+
+            messages.forEach((msg, index) => {
+                const item = document.createElement('div');
+                item.className = `share-message-item ${msg.role}`;
+                item.dataset.index = index;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = selectedMessages.has(index);
+                checkbox.onchange = (e) => {
+                    e.stopPropagation();
+                    toggleMessage(index);
+                };
+
+                const content = document.createElement('div');
+                content.className = 'share-message-content';
+                content.innerHTML = `
+                    <div class="share-message-role">${msg.role === 'user' ? '👤 我' : '🤖 AI教练'}</div>
+                    <div class="share-message-text">${msg.content}</div>
+                `;
+
+                item.appendChild(checkbox);
+                item.appendChild(content);
+                item.onclick = (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        toggleMessage(index);
+                    }
+                };
+
+                container.appendChild(item);
+            });
+        }
+
+        function toggleMessage(index) {
+            if (selectedMessages.has(index)) {
+                selectedMessages.delete(index);
+            } else {
+                selectedMessages.add(index);
+            }
+            updateMessageItemStyle(index);
+            updateSelectAllCheckbox();
+            updateGenerateButton();
+        }
+
+        function updateMessageItemStyle(index) {
+            const items = document.querySelectorAll('.share-message-item');
+            items.forEach((item, i) => {
+                if (i === index) {
+                    item.classList.toggle('selected', selectedMessages.has(index));
+                }
+            });
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            const checkboxes = document.querySelectorAll('.share-message-item input[type="checkbox"]');
+
+            if (selectAll) {
+                messages.forEach((_, i) => selectedMessages.add(i));
+            } else {
+                selectedMessages.clear();
+            }
+
+            checkboxes.forEach((cb, i) => {
+                cb.checked = selectAll;
+            });
+
+            document.querySelectorAll('.share-message-item').forEach((item, i) => {
+                item.classList.toggle('selected', selectAll);
+            });
+
+            updateGenerateButton();
+        }
+
+        function updateSelectAllCheckbox() {
+            const selectAll = document.getElementById('selectAll');
+            selectAll.checked = selectedMessages.size === messages.length;
+        }
+
+        function updateGenerateButton() {
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = selectedMessages.size === 0;
+        }
+
+        async function generateShareImage() {
+            if (selectedMessages.size === 0) return;
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.textContent = '生成中...';
+
+            try {
+                // 填充模板
+                const templateMessages = document.getElementById('shareImageMessages');
+                templateMessages.innerHTML = '';
+
+                const sortedIndices = Array.from(selectedMessages).sort((a, b) => a - b);
+                sortedIndices.forEach(index => {
+                    const msg = messages[index];
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `share-image-message ${msg.role}`;
+                    msgDiv.innerHTML = `
+                        <div class="share-image-message-role">${msg.role === 'user' ? '我' : 'AI教练'}</div>
+                        <div class="share-image-message-text">${msg.content}</div>
+                    `;
+                    templateMessages.appendChild(msgDiv);
+                });
+
+                // 生成图片
+                const template = document.getElementById('shareImageTemplate');
+                template.style.left = '0';
+                template.style.top = '0';
+                template.style.position = 'fixed';
+                template.style.zIndex = '-1';
+
+                const canvas = await html2canvas(template, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+
+                template.style.position = 'absolute';
+                template.style.left = '-9999px';
+                template.style.top = '-9999px';
+
+                currentImageData = canvas.toDataURL('image/png');
+                document.getElementById('previewImage').src = currentImageData;
+
+                closeShareModal();
+                document.getElementById('previewModal').classList.add('active');
+
+            } catch (error) {
+                console.error('生成图片失败:', error);
+                showToast('生成图片失败，请重试', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成分享图';
+            }
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').classList.remove('active');
+            document.getElementById('shareModal').classList.add('active');
+        }
+
+        function saveImage() {
+            if (!currentImageData) return;
+
+            const a = document.createElement('a');
+            a.href = currentImageData;
+            a.download = `情感教练分享_${new Date().toLocaleDateString()}.png`;
+            a.click();
+
+            document.getElementById('previewModal').classList.remove('active');
+            showToast('图片已保存！', 'success');
+        }
+
+        // 初始化
+        loadHistory();
+    </script>
+</body>
+
+</html>

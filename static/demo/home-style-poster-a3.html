@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Between Us - 产品宣传海报</title>
+    <style>
+        @font-face {
+            font-family: "Noto Sans SC";
+            src: url("/static/fonts/NotoSansSC-Regular.woff2") format("woff2");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "Noto Sans SC";
+            src: url("/static/fonts/NotoSansSC-Medium.woff2") format("woff2");
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "ZCOOL XiaoWei";
+            src: url("/static/fonts/ZCOOLXiaoWei-Regular.woff2") format("woff2");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --font-body: "Noto Sans SC", sans-serif;
+            --font-display: "ZCOOL XiaoWei", serif;
+            --bg: radial-gradient(1200px circle at 10% 10%, #fceeea 0%, #f7f3ff 35%, #fdf8f1 72%);
+            --text: #4a3b39;
+            --text-muted: #7a6c6c;
+            --accent: #e6a8a4;
+            --accent-2: #c7b2ff;
+            --card: rgba(255, 255, 255, 0.86);
+            --card-border: rgba(230, 168, 164, 0.25);
+            --line: rgba(74, 59, 57, 0.12);
+            --shadow: 0 24px 60px rgba(74, 59, 57, 0.14);
+            --chip-bg: rgba(230, 168, 164, 0.18);
+            --chip-text: #815d5b;
+            --btn-primary: linear-gradient(135deg, #e6a8a4, #c7b2ff);
+            --btn-ghost: rgba(74, 59, 57, 0.08);
+            --pattern: radial-gradient(circle at 1px 1px, rgba(230, 168, 164, 0.25) 1px, transparent 0);
+            --pattern-size: 30px 30px;
+            --pattern-opacity: 0.28;
+            --shape-1: rgba(255, 214, 208, 0.72);
+            --shape-2: rgba(201, 191, 255, 0.55);
+            --shape-3: rgba(255, 233, 214, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A3 portrait;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font-body);
+            color: var(--text);
+            background: var(--bg);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: var(--pattern);
+            background-size: var(--pattern-size);
+            opacity: var(--pattern-opacity);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .poster {
+            width: 297mm;
+            height: 420mm;
+            margin: 0 auto;
+            padding: 14mm 15mm;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 0 0 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand-badge {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #fff;
+            font-size: 28px;
+            box-shadow: var(--shadow);
+        }
+
+        .brand-title {
+            font-family: var(--font-display);
+            font-size: 32px;
+            letter-spacing: 0.02em;
+        }
+
+        .brand-sub {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .hero {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+            border-radius: 22px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+        }
+
+        .hero-card {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .hero-tag {
+            align-self: flex-start;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            font-size: 13px;
+            letter-spacing: 0.08em;
+        }
+
+        .hero-card h1 {
+            margin: 0;
+            font-family: var(--font-display);
+            font-size: 36px;
+            line-height: 1.2;
+        }
+
+        .hero-card p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chip {
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            font-size: 14px;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .btn {
+            border: none;
+            padding: 14px 24px;
+            border-radius: 999px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .btn.primary {
+            color: #fff;
+            background: var(--btn-primary);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn.ghost {
+            background: var(--btn-ghost);
+            color: var(--text);
+        }
+
+        .side-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .info-card .info-header {
+            font-weight: 600;
+            font-size: 17px;
+            margin-bottom: 12px;
+        }
+
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--line);
+            font-size: 14px;
+        }
+
+        .info-line strong {
+            font-weight: 600;
+        }
+
+        .code-box {
+            margin: 14px 0 18px;
+            padding: 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px dashed var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .code-box .code {
+            font-family: var(--font-display);
+            font-size: 22px;
+            color: var(--accent);
+            letter-spacing: 0.12em;
+        }
+
+        .ritual-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ritual-card::after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -40px;
+            top: -40px;
+            border-radius: 40px;
+            background: linear-gradient(135deg, var(--accent), transparent);
+            opacity: 0.4;
+        }
+
+        .ritual-title {
+            font-family: var(--font-display);
+            font-size: 19px;
+            margin-bottom: 10px;
+        }
+
+        .ritual-card p {
+            margin: 0 0 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .ritual-steps {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ritual-steps span {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            font-size: 13px;
+        }
+
+        .feature-grid {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .feature {
+            padding: 18px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .feature h3 {
+            margin: 0 0 8px;
+            font-size: 17px;
+        }
+
+        .feature p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 产品展示区域 */
+        .product-showcase {
+            margin-top: 20px;
+            flex: 1;
+        }
+
+        .showcase-header {
+            margin-bottom: 16px;
+        }
+
+        .showcase-header h2 {
+            margin: 0 0 8px;
+            font-family: var(--font-display);
+            font-size: 22px;
+        }
+
+        .showcase-header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .phone-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            justify-items: center;
+        }
+
+        .phone-frame {
+            width: 100%;
+            max-width: 150px;
+        }
+
+        .phone-mockup {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 9/20;
+            background: #1a1a1a;
+            border-radius: 28px;
+            padding: 8px;
+            box-shadow: 
+                0 20px 50px rgba(0, 0, 0, 0.2),
+                inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 22px;
+            overflow: hidden;
+            background: #fdf8f3;
+            position: relative;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 22px;
+            background: #1a1a1a;
+            border-radius: 0 0 16px 16px;
+            z-index: 10;
+        }
+
+        .phone-label {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .phone-desc {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* 手机内页面样式 */
+        .screen-content {
+            padding: 28px 10px 10px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            font-size: 8px;
+            background: linear-gradient(180deg, #fceeea 0%, #fdf8f3 100%);
+        }
+
+        .screen-header {
+            font-size: 7px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .screen-title {
+            font-family: var(--font-display);
+            font-size: 11px;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .screen-subtitle {
+            font-size: 6px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .screen-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 8px;
+            margin-bottom: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .screen-card-title {
+            font-weight: 600;
+            font-size: 8px;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .screen-card-desc {
+            font-size: 6px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .screen-chip {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            font-size: 5px;
+            margin-right: 3px;
+            margin-bottom: 3px;
+        }
+
+        .screen-btn {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--btn-primary);
+            color: #fff;
+            font-size: 7px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        /* 对话界面样式 */
+        .chat-bubble {
+            max-width: 85%;
+            padding: 6px 8px;
+            border-radius: 10px;
+            font-size: 6px;
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .chat-bubble.ai {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--card-border);
+            align-self: flex-start;
+        }
+
+        .chat-bubble.user {
+            background: var(--btn-primary);
+            color: #fff;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .chat-input {
+            margin-top: auto;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 6px 10px;
+            font-size: 6px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-send {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--btn-primary);
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 7px;
+        }
+
+        /* 个人中心样式 */
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--btn-primary);
+            margin: 0 auto 6px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .profile-name {
+            text-align: center;
+            font-weight: 600;
+            font-size: 9px;
+            margin-bottom: 3px;
+        }
+
+        .profile-status {
+            text-align: center;
+            font-size: 6px;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        /* 情感客厅样式 */
+        .lounge-users {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .lounge-user {
+            text-align: center;
+        }
+
+        .lounge-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--btn-primary);
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+
+        .lounge-avatar.partner {
+            background: linear-gradient(135deg, var(--accent-2), var(--accent));
+        }
+
+        .lounge-name {
+            font-size: 6px;
+            color: var(--text);
+        }
+
+        .lounge-connect {
+            font-size: 12px;
+            margin: 0 3px;
+            align-self: center;
+        }
+
+        .bg-shape {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(10px);
+            opacity: 0.9;
+            z-index: 0;
+        }
+
+        .bg-shape.s1 {
+            width: 200px;
+            height: 200px;
+            background: var(--shape-1);
+            top: 5%;
+            left: -60px;
+        }
+
+        .bg-shape.s2 {
+            width: 180px;
+            height: 180px;
+            background: var(--shape-2);
+            bottom: 8%;
+            right: -40px;
+        }
+
+        .bg-shape.s3 {
+            width: 140px;
+            height: 140px;
+            background: var(--shape-3);
+            top: 40%;
+            right: 15%;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+        }
+
+        .footer-qr {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 16px;
+        }
+
+        .qr-item {
+            text-align: center;
+        }
+
+        .qr-placeholder {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px dashed var(--line);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .qr-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            object-fit: contain;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+
+        .qr-label {
+            font-size: 11px;
+            color: var(--text);
+        }
+
+        @media print {
+            body {
+                background: var(--bg) !important;
+            }
+            .bg-shape {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-badge">💝</div>
+                <div>
+                    <div class="brand-title">Between Us</div>
+                    <div class="brand-sub">在亲密关系里，温柔地站在你这边</div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero">
+                <div class="card hero-card">
+                    <span class="hero-tag">温柔疗愈</span>
+                    <h1>把爱说清楚，也把你安顿好</h1>
+                    <p>用一段安全的对话，梳理情绪、表达需求、修复误解。你说的每一句话，都值得被温柔回应。</p>
+                    <div class="chip-row">
+                        <span class="chip">安心感</span>
+                        <span class="chip">情绪转译</span>
+                        <span class="chip">亲密修复</span>
+                        <span class="chip">倾听陪伴</span>
+                    </div>
+                    <div class="hero-actions">
+                        <span class="btn primary">进入个人教练</span>
+                        <span class="btn ghost">开启情感客厅</span>
+                    </div>
+                </div>
+                <div class="side-stack">
+                    <div class="card info-card">
+                        <div class="info-header">账号信息</div>
+                        <div class="info-line">
+                            <span>手机号</span>
+                            <strong>138****5279</strong>
+                        </div>
+                        <div class="info-line">
+                            <span>绑定状态</span>
+                            <strong>已绑定 ❤️</strong>
+                        </div>
+                        <div class="code-box">
+                            <span>我的绑定码</span>
+                            <span class="code">829403</span>
+                        </div>
+                        <span class="btn ghost" style="font-size: 13px;">复制绑定码</span>
+                    </div>
+                    <div class="card ritual-card">
+                        <div class="ritual-title">今日小仪式</div>
+                        <p>对彼此说一句"我看见你今天的努力了"。仪式感不是形式，是把爱说出口。</p>
+                        <div class="ritual-steps">
+                            <span>1 分钟</span>
+                            <span>2 个人</span>
+                            <span>1 句话</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-grid">
+                <div class="feature">
+                    <h3>情绪地图</h3>
+                    <p>把复杂的心情拆成可理解的维度，帮助你用更清晰的语言表达自己。</p>
+                </div>
+                <div class="feature">
+                    <h3>关系记录</h3>
+                    <p>保存那些想记住的对话瞬间，持续构建你们的安全感。</p>
+                </div>
+                <div class="feature">
+                    <h3>陪伴式提醒</h3>
+                    <p>轻量而温柔的提醒，像在耳边轻声说"我在"。</p>
+                </div>
+            </section>
+
+            <section class="product-showcase">
+                <div class="showcase-header">
+                    <h2>产品功能展示</h2>
+                    <p>四大核心场景，陪你和伴侣走过每一个需要被理解的时刻</p>
+                </div>
+                <div class="phone-grid">
+                    <!-- 首页 -->
+                    <div class="phone-frame">
+                        <div class="phone-mockup">
+                            <div class="phone-screen">
+                                <div class="phone-notch"></div>
+                                <div class="screen-content">
+                                    <div class="screen-header">今日主题 · 温柔疗愈</div>
+                                    <div class="screen-title">💝 Between Us</div>
+                                    <div class="screen-subtitle">让亲密关系拥有更清晰的表达方式与被理解的空间。</div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">💬 个人教练</div>
+                                        <div class="screen-card-desc">把情绪梳理清楚，把话说到心里</div>
+                                        <div style="margin-top: 6px;">
+                                            <span class="screen-chip">情绪梳理</span>
+                                            <span class="screen-chip">表达练习</span>
+                                        </div>
+                                    </div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">💑 情感客厅</div>
+                                        <div class="screen-card-desc">一起说清楚，一起被温柔回应</div>
+                                        <div style="margin-top: 6px;">
+                                            <span class="screen-chip">共同表达</span>
+                                            <span class="screen-chip">关系修复</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phone-label">首页入口</div>
+                        <div class="phone-desc">选择适合的陪伴方式</div>
+                    </div>
+
+                    <!-- 个人教练对话 -->
+                    <div class="phone-frame">
+                        <div class="phone-mockup">
+                            <div class="phone-screen">
+                                <div class="phone-notch"></div>
+                                <div class="screen-content" style="padding-top: 36px;">
+                                    <div class="screen-header" style="text-align: center; margin-bottom: 10px;">💬 个人教练</div>
+                                    <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                                        <div class="chat-bubble ai">
+                                            你好呀，今天感觉怎么样？有什么想和我聊聊的吗？💗
+                                        </div>
+                                        <div class="chat-bubble user">
+                                            最近和对象有点误会，不知道怎么开口...
+                                        </div>
+                                        <div class="chat-bubble ai">
+                                            听起来你有些担心怎么表达。能告诉我，是什么样的误会让你感到困扰呢？
+                                        </div>
+                                        <div class="chat-bubble user">
+                                            ta 觉得我不够关心，但我只是不善于表达
+                                        </div>
+                                        <div class="chat-bubble ai">
+                                            我理解你的心情。很多时候，爱在心里却说不出口。不如我们一起练习，用更温柔的方式表达？✨
+                                        </div>
+                                    </div>
+                                    <div class="chat-input">
+                                        <span>说说你现在的心情...</span>
+                                        <div class="chat-send">→</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phone-label">个人教练</div>
+                        <div class="phone-desc">温柔对话，梳理情绪</div>
+                    </div>
+
+                    <!-- 情感客厅 -->
+                    <div class="phone-frame">
+                        <div class="phone-mockup">
+                            <div class="phone-screen">
+                                <div class="phone-notch"></div>
+                                <div class="screen-content" style="padding-top: 36px;">
+                                    <div class="screen-header" style="text-align: center; margin-bottom: 8px;">💑 情感客厅</div>
+                                    <div class="lounge-users">
+                                        <div class="lounge-user">
+                                            <div class="lounge-avatar">我</div>
+                                            <div class="lounge-name">小雨</div>
+                                        </div>
+                                        <span class="lounge-connect">💕</span>
+                                        <div class="lounge-user">
+                                            <div class="lounge-avatar partner">Ta</div>
+                                            <div class="lounge-name">阿晨</div>
+                                        </div>
+                                    </div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">🌟 今日话题</div>
+                                        <div class="screen-card-desc">说一件今天让你感到被爱的小事</div>
+                                    </div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">💬 对话记录</div>
+                                        <div class="screen-card-desc" style="margin-top: 4px;">
+                                            <div style="margin-bottom: 4px;"><strong>小雨:</strong> 你今天买的早餐让我很开心</div>
+                                            <div><strong>阿晨:</strong> 看到你笑我就满足了 ❤️</div>
+                                        </div>
+                                    </div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">✅ 本周仪式完成</div>
+                                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                                            <span class="screen-chip">表达感谢 ✓</span>
+                                            <span class="screen-chip">倾听心声 ✓</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phone-label">情感客厅</div>
+                        <div class="phone-desc">双人空间，共同成长</div>
+                    </div>
+
+                    <!-- 个人中心 -->
+                    <div class="phone-frame">
+                        <div class="phone-mockup">
+                            <div class="phone-screen">
+                                <div class="phone-notch"></div>
+                                <div class="screen-content" style="padding-top: 36px;">
+                                    <div class="profile-avatar">🙋</div>
+                                    <div class="profile-name">小雨</div>
+                                    <div class="profile-status">❤️ 已与阿晨绑定</div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">📊 情感记录</div>
+                                        <div class="screen-card-desc">
+                                            <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                                                <span>对话次数</span><strong>28 次</strong>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                                                <span>仪式完成</span><strong>12 个</strong>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                                                <span>连续陪伴</span><strong>7 天</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">🔗 绑定信息</div>
+                                        <div class="screen-card-desc">
+                                            <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                                                <span>我的绑定码</span>
+                                                <strong style="color: var(--accent);">829403</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="screen-card">
+                                        <div class="screen-card-title">⚙️ 设置</div>
+                                        <div class="screen-card-desc">提醒时间 · 隐私保护 · 关于我们</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phone-label">个人中心</div>
+                        <div class="phone-desc">管理账号与关系</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>情感陪伴助手 · 让亲密关系更有安全感</p>
+            <div class="footer-qr">
+                <div class="qr-item">
+                    <img src="scan-qr.png" alt="扫码体验" class="qr-image">
+                    <div class="qr-label">扫码使用</div>
+                </div>
+                <div class="qr-item">
+                    <img src="wechat-group-qr.png" alt="微信群二维码" class="qr-image">
+                    <div class="qr-label">用户群</div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div class="bg-shape s1" aria-hidden="true"></div>
+    <div class="bg-shape s2" aria-hidden="true"></div>
+    <div class="bg-shape s3" aria-hidden="true"></div>
+</body>
+</html>
