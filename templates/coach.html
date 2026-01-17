@@ -616,23 +616,30 @@
         let currentImageData = null;
 
         async function loadHistory() {
+            console.log('[Coach] 开始加载历史记录...');
             try {
                 const response = await fetch('/api/coach/history');
+                console.log('[Coach] 历史记录API响应状态:', response.status);
 
                 if (response.status === 401) {
+                    console.error('[Coach] 登录已过期');
                     showToast('登录已过期，请重新登录', 'error');
                     window.location.href = '/';
                     return;
                 }
 
                 const data = await response.json();
+                console.log('[Coach] 历史记录数据:', data);
 
                 if (data.success) {
                     messages = data.messages;
+                    console.log(`[Coach] 加载了 ${messages.length} 条历史记录`);
                     renderMessages();
+                } else {
+                    console.error('[Coach] 加载历史记录失败:', data.message);
                 }
             } catch (error) {
-                console.error('加载历史记录失败', error);
+                console.error('[Coach] 加载历史记录异常:', error);
             }
         }
 
@@ -727,13 +734,20 @@
         }
 
         async function sendMessage() {
-            if (isStreaming) return;
+            if (isStreaming) {
+                console.log('[Coach] 正在流式传输中，忽略发送请求');
+                return;
+            }
 
             const input = document.getElementById('messageInput');
             const content = input.value.trim();
 
-            if (!content) return;
+            if (!content) {
+                console.log('[Coach] 消息为空，忽略');
+                return;
+            }
 
+            console.log('[Coach] 开始发送消息:', content.substring(0, 50) + '...');
             isStreaming = true;
             document.getElementById('sendBtn').disabled = true;
 
@@ -742,38 +756,61 @@
             input.value = '';
 
             // 创建流式消息占位
+            console.log('[Coach] 创建流式消息占位符');
             createStreamingMessage();
 
             let reasoningText = '';
             let answerText = '';
             let hasReasoning = false;
             let streamingMessageCreated = true;  // 标记已创建流式消息
+            let receivedDataCount = 0;
 
             try {
+                console.log('[Coach] 发起流式API请求...');
+                const fetchStart = Date.now();
+                
                 const response = await fetch('/api/coach/chat/stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: content })
                 });
 
+                console.log(`[Coach] API响应状态: ${response.status}, 耗时: ${Date.now() - fetchStart}ms`);
+                console.log('[Coach] 响应头:', Object.fromEntries(response.headers.entries()));
+
                 if (response.status === 401) {
+                    console.error('[Coach] 登录已过期');
                     showToast('登录已过期，请重新登录', 'error');
                     window.location.href = '/';
                     return;
                 }
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
+                console.log('[Coach] 开始读取流式数据...');
 
                 while (true) {
                     const { done, value } = await reader.read();
-                    if (done) break;
+                    if (done) {
+                        console.log('[Coach] 流式读取完成');
+                        break;
+                    }
 
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split('\n');
 
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
+                            receivedDataCount++;
+                            
+                            if (receivedDataCount <= 5 || receivedDataCount % 10 === 0) {
+                                console.log(`[Coach] 收到数据包 #${receivedDataCount}:`, line.substring(0, 100));
+                            }
+                            
                             try {
                                 const data = JSON.parse(line.slice(6));
 
@@ -781,6 +818,7 @@
                                     if (!hasReasoning) {
                                         hasReasoning = true;
                                         document.getElementById('thinkingContainer').style.display = 'block';
+                                        console.log('[Coach] 开始接收思考内容');
                                     }
                                     reasoningText += data.content;
                                     const thinkingEl = document.getElementById('thinkingContent');
@@ -788,6 +826,7 @@
                                     thinkingEl.scrollTop = thinkingEl.scrollHeight;
                                 }
                                 else if (data.type === 'reasoning_done') {
+                                    console.log('[Coach] 思考过程完成');
                                     const thinkingContent = document.getElementById('thinkingContent');
                                     const thinkingToggle = document.querySelector('.thinking-toggle');
                                     if (thinkingContent && thinkingToggle) {
@@ -806,6 +845,10 @@
                                     container.scrollTop = container.scrollHeight;
                                 }
                                 else if (data.type === 'done') {
+                                    console.log('[Coach] 收到完成信号');
+                                    console.log('[Coach] 最终内容长度:', data.final_content?.length || 0);
+                                    console.log('[Coach] 思考内容长度:', data.reasoning_content?.length || 0);
+                                    
                                     // 流式完成，保存消息并重新渲染
                                     if (data.final_content) {
                                         messages.push({
@@ -820,17 +863,20 @@
                                     streamingMessageCreated = false;
                                 }
                                 else if (data.type === 'error') {
+                                    console.error('[Coach] 收到错误:', data.content);
                                     const answerEl = document.getElementById('answerContent');
                                     answerEl.textContent = 'AI 暂时无法响应：' + data.content;
                                 }
                             } catch (e) {
-                                console.error('Parse error:', e);
+                                console.error('[Coach] 解析数据包失败:', e, '原始数据:', line);
                             }
                         }
                     }
                 }
+                
+                console.log(`[Coach] 总共收到 ${receivedDataCount} 个数据包`);
             } catch (error) {
-                console.error(error);
+                console.error('[Coach] 请求失败:', error);
                 const answerEl = document.getElementById('answerContent');
                 if (answerEl) {
                     answerEl.textContent = '网络错误，请检查连接。';
@@ -840,6 +886,7 @@
                     renderMessages();
                 }
             } finally {
+                console.log('[Coach] 发送流程结束');
                 isStreaming = false;
                 document.getElementById('sendBtn').disabled = false;
             }

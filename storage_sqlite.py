@@ -392,6 +392,9 @@ class CoachChat:
     
     def save(self):
         """保存聊天记录"""
+        import time
+        save_start = time.time()
+        
         with db_lock:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -401,6 +404,7 @@ class CoachChat:
             try:
                 if self.id:
                     # 更新现有记录
+                    print(f"[DB] 更新教练聊天记录 ID={self.id}, role={self.role}, content_len={len(self.content)}", flush=True)
                     cursor.execute('''
                         UPDATE coach_chats 
                         SET user_id=?, role=?, content=?, reasoning_content=?
@@ -408,16 +412,22 @@ class CoachChat:
                     ''', (self.user_id, self.role, self.content, self.reasoning_content, self.id))
                 else:
                     # 创建新记录
+                    print(f"[DB] 创建教练聊天记录 user_id={self.user_id}, role={self.role}, content_len={len(self.content)}", flush=True)
                     cursor.execute('''
                         INSERT INTO coach_chats (user_id, role, content, reasoning_content, created_at)
                         VALUES (?, ?, ?, ?, ?)
                     ''', (self.user_id, self.role, self.content, self.reasoning_content, created_at_str))
                     self.id = cursor.lastrowid
+                    print(f"[DB] ✓ 教练聊天记录已创建，ID={self.id}", flush=True)
                 
                 conn.commit()
+                elapsed = time.time() - save_start
+                print(f"[DB] ✓ 教练聊天记录保存成功，耗时: {elapsed:.3f}s", flush=True)
                 return self
             except Exception as e:
-                print(f"[SQLite Error] 保存教练聊天记录失败: {e}", flush=True)
+                print(f"[DB] ❌ 保存教练聊天记录失败: {e}", flush=True)
+                import traceback
+                print(f"[DB] 异常堆栈:\n{traceback.format_exc()}", flush=True)
                 raise
             finally:
                 conn.close()
@@ -436,6 +446,9 @@ class CoachChat:
     @staticmethod
     def filter(**kwargs):
         """根据条件过滤聊天记录"""
+        import time
+        query_start = time.time()
+        
         with db_lock:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -449,11 +462,16 @@ class CoachChat:
             where_clause = " AND ".join(conditions) if conditions else "1=1"
             query = f"SELECT * FROM coach_chats WHERE {where_clause} ORDER BY created_at ASC"
             
+            print(f"[DB] 查询教练聊天记录: {kwargs}", flush=True)
             cursor.execute(query, values)
             rows = cursor.fetchall()
             conn.close()
             
-            return [CoachChat.from_row(row) for row in rows]
+            result = [CoachChat.from_row(row) for row in rows]
+            elapsed = time.time() - query_start
+            print(f"[DB] ✓ 查询完成，返回 {len(result)} 条记录，耗时: {elapsed:.3f}s", flush=True)
+            
+            return result
     
     @staticmethod
     def all():

@@ -563,38 +563,74 @@ def get_coach_history():
     })
 
 
+@app.route('/api/debug/config', methods=['GET'])
+def debug_config():
+    """调试接口：检查配置"""
+    return jsonify({
+        'success': True,
+        'config': {
+            'COZE_API_KEY': '已配置' if COZE_API_KEY else '未配置',
+            'COZE_API_KEY_length': len(COZE_API_KEY) if COZE_API_KEY else 0,
+            'COZE_BOT_ID_COACH': COZE_BOT_ID_COACH or '未配置',
+            'COZE_BOT_ID_LOUNGE': COZE_BOT_ID_LOUNGE or '未配置',
+            'COZE_API_URL': COZE_API_URL,
+            'DB_PATH': DB_PATH,
+            'FLASK_ENV': os.getenv('FLASK_ENV', 'development')
+        }
+    })
+
+
 @app.route('/api/coach/chat/stream', methods=['POST'])
 def coach_chat_stream():
     """个人教练流式聊天 - 实时推送思考过程和正文"""
+    print(f"\n{'='*60}", flush=True)
+    print(f"[Coach Stream] 收到流式聊天请求", flush=True)
+    
     user_id = session.get('user_id')
     if not user_id:
+        print(f"[Coach Stream] 用户未登录", flush=True)
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     data = request.json
     message = data.get('message')
+    print(f"[Coach Stream] 用户ID: {user_id}", flush=True)
+    print(f"[Coach Stream] 消息内容: {message[:50]}..." if len(message) > 50 else f"[Coach Stream] 消息内容: {message}", flush=True)
 
     if not message:
+        print(f"[Coach Stream] 消息为空", flush=True)
         return jsonify({'success': False, 'message': '消息不能为空'}), 400
 
     # 获取用户信息
+    print(f"[Coach Stream] 开始获取用户信息...", flush=True)
     user = User.get(user_id)
     user_phone = user.phone
+    print(f"[Coach Stream] 用户手机号: {user_phone}", flush=True)
 
     # 异步保存用户消息（不阻塞）
+    print(f"[Coach Stream] 开始保存用户消息到数据库...", flush=True)
     user_msg = CoachChat(user_id=user_id, role='user', content=message)
     save_message_async(user_msg)
+    print(f"[Coach Stream] 用户消息已提交异步保存", flush=True)
 
     # 获取历史对话（最近5条）
+    print(f"[Coach Stream] 开始读取历史对话...", flush=True)
     all_history = CoachChat.filter(user_id=user_id)
+    print(f"[Coach Stream] 数据库返回历史记录数: {len(all_history)}", flush=True)
     all_history.sort(key=lambda x: x.created_at, reverse=True)
     history = all_history[:5]
     conversation_history = [{"role": msg.role, "content": msg.content} for msg in reversed(history)]
+    print(f"[Coach Stream] 构建对话历史完成，共 {len(conversation_history)} 条", flush=True)
 
     def generate():
         """流式生成器"""
+        print(f"[Coach Stream] 进入流式生成器", flush=True)
+        
         if not COZE_API_KEY or not COZE_BOT_ID_COACH:
+            print(f"[Coach Stream] ❌ AI服务未配置: COZE_API_KEY={bool(COZE_API_KEY)}, BOT_ID={bool(COZE_BOT_ID_COACH)}", flush=True)
             yield f"data: {json.dumps({'type': 'error', 'content': 'AI 服务未配置'}, ensure_ascii=False)}\n\n"
             return
+        
+        print(f"[Coach Stream] ✓ API配置检查通过", flush=True)
 
         try:
             headers = {
@@ -629,38 +665,59 @@ def coach_chat_stream():
                 "additional_messages": messages
             }
 
+            print(f"[Coach Stream] 准备调用 Coze API", flush=True)
+            print(f"[Coach Stream] API URL: {COZE_API_URL}", flush=True)
+            print(f"[Coach Stream] Bot ID: {COZE_BOT_ID_COACH}", flush=True)
+            print(f"[Coach Stream] User ID: {user_phone}", flush=True)
+            print(f"[Coach Stream] 消息数量: {len(messages)}", flush=True)
+            
+            api_start_time = time.time()
             response = requests.post(COZE_API_URL, headers=headers, json=payload, timeout=60, stream=True)
+            print(f"[Coach Stream] API响应状态码: {response.status_code}", flush=True)
+            print(f"[Coach Stream] API响应耗时: {time.time() - api_start_time:.3f}s", flush=True)
             response.raise_for_status()
 
             current_event = None
             final_content = ""
             reasoning_content = ""
+            line_count = 0
             
             # 预先创建AI消息记录（边流式边保存策略）
+            print(f"[Coach Stream] 创建AI消息记录...", flush=True)
             ai_msg = CoachChat(
                 user_id=user_id, 
                 role='assistant', 
                 content="",  # 初始为空
                 reasoning_content=None
             )
+            db_save_start = time.time()
             ai_msg.save()  # 先保存一次，获取ID
+            print(f"[Coach Stream] AI消息记录已保存，ID: {ai_msg.id if hasattr(ai_msg, 'id') else 'N/A'}，耗时: {time.time() - db_save_start:.3f}s", flush=True)
             last_save_time = time.time()
             save_interval = 2.0  # 每2秒保存一次
+            
+            print(f"[Coach Stream] 开始读取流式响应...", flush=True)
 
             for line in response.iter_lines():
                 if line:
+                    line_count += 1
                     try:
                         line_text = line.decode('utf-8')
+                        
+                        if line_count <= 5 or line_count % 10 == 0:  # 只打印前5行和每10行
+                            print(f"[Coach Stream] 第{line_count}行: {line_text[:100]}...", flush=True)
 
                         # 处理 event: 行
                         if line_text.startswith('event:'):
                             current_event = line_text[6:].strip()
+                            print(f"[Coach Stream] 事件类型: {current_event}", flush=True)
                             continue
 
                         # 处理 data: 行
                         if line_text.startswith('data:'):
                             json_str = line_text[5:].strip()
                             if json_str == '[DONE]' or json_str == '"[DONE]"':
+                                print(f"[Coach Stream] 收到完成信号 [DONE]", flush=True)
                                 break
 
                             if not json_str:
@@ -687,17 +744,21 @@ def coach_chat_stream():
                                 reasoning = data.get('reasoning_content', '')
                                 if reasoning:
                                     reasoning_content += reasoning
+                                    print(f"[Coach Stream] 收到思考内容，长度: {len(reasoning)}", flush=True)
                                     yield f"data: {json.dumps({'type': 'reasoning', 'content': reasoning}, ensure_ascii=False)}\n\n"
 
                                 # 正文内容 (content)
                                 content = data.get('content', '')
                                 if content:
                                     final_content += content
+                                    if len(final_content) % 50 < len(content):  # 每50字符打印一次
+                                        print(f"[Coach Stream] 累计正文长度: {len(final_content)}", flush=True)
                                     yield f"data: {json.dumps({'type': 'content', 'content': content}, ensure_ascii=False)}\n\n"
                                     
                                     # 定期保存（边流式边保存，防止数据丢失）
                                     current_time = time.time()
                                     if current_time - last_save_time >= save_interval:
+                                        print(f"[Coach Stream] 定期保存中间结果...", flush=True)
                                         ai_msg.content = final_content
                                         ai_msg.reasoning_content = reasoning_content if reasoning_content else None
                                         save_message_async(ai_msg)
