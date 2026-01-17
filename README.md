@@ -7,9 +7,9 @@ sdk: docker
 app_port: 7860
 ---
 
-# 💝 情感陪伴助手
+# 💝 情感陪伴助手 Between Us
 
-一款面向亲密关系用户的 AI 辅助沟通工具，通过双聊天室模式实现个人情感梳理与双人共同沟通。
+一款面向亲密关系用户的 AI 辅助沟通工具，通过双聊天室模式实现个人情感梳理与双人共同沟通。基于 Flask + Supabase 构建，支持实时通信和云端数据存储。
 
 ## ✨ 核心功能
 
@@ -33,76 +33,65 @@ app_port: 7860
 
 ## 🚀 快速开始
 
-### 方式一：使用 Supabase（推荐）
+### 环境要求
+- Python 3.8+
+- Supabase 账号（免费）
+- Coze API Key（用于 AI 对话）
 
-**优势**：支持高并发、自动备份、免费额度充足
+### 部署步骤
 
-1. **安装依赖**
+1. **克隆项目**
+```bash
+git clone https://github.com/jueyunai/Between-Us.git
+cd Between-Us
+```
+
+2. **安装依赖**
 ```bash
 pip install -r requirements.txt
 ```
 
-2. **配置 Supabase**
-```bash
-# 使用快速配置脚本
-bash setup_supabase.sh
-
-# 或手动配置（详见 doc/supabase-migration-guide.md）
-```
-
-3. **修改代码**
-
-在 `app.py` 第 4 行，将：
-```python
-from storage import User, Relationship, CoachChat, LoungeChat
-```
-改为：
-```python
-from storage_supabase import User, Relationship, CoachChat, LoungeChat
-```
-
-4. **启动应用**
-```bash
-python app.py
-```
-
-5. **访问应用**
-
-打开浏览器访问：`http://localhost:7860`
-
-📖 **详细文档**：[Supabase 迁移指南](doc/supabase-migration-guide.md)
-
----
-
-### 方式二：使用 JSON 文件存储（开发测试）
-
-1. **安装依赖**
-```bash
-pip install -r requirements.txt
-```
-
-2. **配置环境变量**
+3. **配置环境变量**
 ```bash
 cp .env.example .env
 ```
 
-编辑 `.env` 文件，填写 AI API Key：
-```
+编辑 `.env` 文件，填写必要配置：
+```env
+# Coze AI 配置
 COZE_API_KEY=your-coze-api-key-here
 COZE_BOT_ID_COACH=your-coach-bot-id
 COZE_BOT_ID_LOUNGE=your-lounge-bot-id
+
+# Supabase 配置
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-supabase-anon-key
+
+# Flask 配置
+SECRET_KEY=your-secret-key-here
 ```
 
-3. **运行项目**
+4. **初始化 Supabase 数据库**
+
+在 Supabase 控制台的 SQL Editor 中执行 `supabase_schema.sql` 文件内容，创建所需表结构。
+
+📖 **详细指南**：[Supabase 迁移指南](doc/supabase-migration-guide.md)
+
+5. **启动应用**
 ```bash
 python app.py
 ```
 
-4. **访问应用**
+6. **访问应用**
 
 打开浏览器访问：`http://localhost:7860`
 
-> ⚠️ **注意**：JSON 存储不支持并发，仅适合开发测试，生产环境请使用 Supabase
+### Docker 部署
+
+```bash
+docker build -t between-us .
+docker run -p 7860:7860 --env-file .env between-us
+```
 
 ## 📱 使用流程
 
@@ -116,61 +105,70 @@ python app.py
 ### 后端
 - **Flask** - Web 框架
 - **Flask-SocketIO** - WebSocket 实时通信
-- **SQLAlchemy** - ORM 数据库
-- **OpenAI API** - AI 对话能力（可替换为扣子 SDK）
+- **Supabase** - 云端 PostgreSQL 数据库
+- **Coze API** - AI 对话能力
 
 ### 前端
 - **HTML/CSS/JavaScript** - 原生开发
-- **Socket.IO** - 客户端 WebSocket
+- **Socket.IO** - 客户端 WebSocket 实时通信
 
-### 数据库
-- **Supabase PostgreSQL** - 生产环境数据库（推荐）
-- **JSON 文件存储** - 开发测试备选方案
+### 部署
+- **Docker** - 容器化部署
+- **ModelScope** - 国内部署平台（可选）
 
 ## 📂 项目结构
 
 ```
-emotion-helper/
-├── app.py                      # 主应用文件
-├── storage.py                  # JSON 文件存储（开发测试）
-├── storage_supabase.py         # Supabase 存储（生产环境）
-├── models.py                   # 数据库模型（未使用）
-├── migrate_to_supabase.py      # 数据迁移脚本
-├── supabase_schema.sql         # Supabase 表结构
-├── setup_supabase.sh           # Supabase 快速配置脚本
+Between-Us/
+├── app.py                      # Flask 主应用
+├── storage_supabase.py         # Supabase 数据存储层
 ├── requirements.txt            # Python 依赖
-├── .env.example               # 环境变量示例
-├── doc/
-│   └── supabase-migration-guide.md  # Supabase 迁移指南
-├── data/                      # JSON 数据目录（可选）
+├── Dockerfile                  # Docker 配置
+├── .env.example               # 环境变量模板
+├── supabase_schema.sql        # 数据库表结构
+├── doc/                       # 项目文档
+│   ├── supabase-migration-guide.md      # Supabase 迁移指南
+│   ├── decision-log.md                  # 技术决策记录
+│   ├── cleanup-2026-01-18.md           # 代码清理记录
+│   └── ...
 ├── static/
 │   ├── css/
 │   │   └── common.css         # 公共样式
-│   ├── js/
-│   └── images/
+│   ├── js/                    # JavaScript 文件
+│   ├── images/                # 图片资源
+│   └── fonts/                 # 字体文件
 └── templates/
     ├── login.html             # 登录页面
     ├── home.html              # 主页
     ├── profile.html           # 个人中心
     ├── coach.html             # 个人教练聊天室
-    └── lounge.html            # 情感客厅聊天室
+    ├── lounge.html            # 情感客厅聊天室
+    └── lounge_debug.html      # 调试页面
 ```
 
-## 🔧 自定义 AI 模型
+## 🔧 配置说明
 
-### 使用扣子 SDK
+### Coze AI 配置
 
-在 `app.py` 中替换 OpenAI 客户端为扣子 SDK：
+项目使用 Coze API 提供 AI 对话能力，需要配置两个 Bot：
 
-```python
-# 替换 OpenAI 导入
-from coze import Coze  # 扣子 SDK
+1. **个人教练 Bot**：用于一对一情感辅导
+2. **情感客厅 Bot**：用于双人沟通场景的建议
 
-# 初始化扣子客户端
-coze_client = Coze(api_key=os.getenv("COZE_API_KEY"))
-
-# 在 coach_chat 和 handle_call_ai 函数中替换 AI 调用逻辑
+在 `.env` 文件中配置：
+```env
+COZE_API_KEY=your-api-key
+COZE_BOT_ID_COACH=coach-bot-id
+COZE_BOT_ID_LOUNGE=lounge-bot-id
 ```
+
+### Supabase 配置
+
+1. 在 [Supabase](https://supabase.com) 创建项目
+2. 在 SQL Editor 中执行 `supabase_schema.sql` 创建表
+3. 获取项目 URL 和 anon key 填入 `.env`
+
+详细步骤参考：[Supabase 迁移指南](doc/supabase-migration-guide.md)
 
 ## 🎯 功能特色
 
@@ -193,12 +191,10 @@ coze_client = Coze(api_key=os.getenv("COZE_API_KEY"))
 
 ## 📝 注意事项
 
-1. **API Key 配置**：请确保配置有效的 Coze API Key
-2. **数据安全**：生产环境请使用 HTTPS 和更强的密码加密
-3. **数据库选择**：
-   - 开发测试：可使用 JSON 文件存储
-   - 生产环境：强烈推荐使用 Supabase PostgreSQL
-4. **并发支持**：JSON 存储不支持并发，多用户同时访问请使用 Supabase
+1. **环境变量**：请确保 `.env` 文件配置完整且不要提交到 Git
+2. **数据安全**：生产环境请使用 HTTPS 和强密码策略
+3. **Supabase 配额**：免费版有请求限制，注意监控使用量
+4. **AI 调用成本**：Coze API 按调用次数计费，建议设置预算提醒
 
 ## 🎓 路演展示建议
 
@@ -218,10 +214,16 @@ coze_client = Coze(api_key=os.getenv("COZE_API_KEY"))
 
 MIT License
 
+## 🔗 相关链接
+
+- [GitHub 仓库](https://github.com/jueyunai/Between-Us)
+- [Supabase 迁移指南](doc/supabase-migration-guide.md)
+- [技术决策记录](doc/decision-log.md)
+
 ## 🙏 致谢
 
 感谢使用情感陪伴助手！希望 AI 能帮助更多人建立更好的亲密关系。
 
 ---
 
-**Made with ❤️ by Claude Code**
+**Made with ❤️ for Better Relationships**
