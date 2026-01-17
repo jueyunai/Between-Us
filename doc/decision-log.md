@@ -262,3 +262,116 @@ ai_msg.save()  # 同步保存确保完整性
 - Supabase 性能最佳实践：https://supabase.com/docs/guides/platform/performance
 
 
+
+
+---
+
+## 2026-01-18：从 Supabase 迁移回 SQLite
+
+### 背景
+Supabase 部署后发现延迟过高，严重影响用户体验：
+- 网络延迟：跨境访问延迟 > 1s
+- 即使做了异步优化，仍然存在明显卡顿
+- 魔搭部署环境对外部数据库访问不友好
+
+### 决策
+**回退到 SQLite 本地数据库**
+
+### 理由
+1. **零延迟**：本地文件访问，无网络请求
+2. **简单可靠**：无需外部服务依赖
+3. **成本降低**：不需要 Supabase 订阅
+4. **易于调试**：可直接查看 .db 文件
+5. **符合场景**：单实例部署，不需要分布式数据库
+
+### 实施内容
+1. ✅ 新增 `storage_sqlite.py` - SQLite 存储层实现
+2. ✅ 修改 `app.py` - 导入改为 `storage_sqlite`
+3. ✅ 移除 Supabase 延迟检测代码
+4. ✅ 更新 `.env.example` - 移除 Supabase 配置
+5. ✅ 新增文档 `doc/sqlite-migration-2026-01-18.md`
+
+### 技术细节
+
+**数据库路径**：`/mnt/workspace/emotion_helper.db`
+- 使用魔搭持久化目录
+- Docker 重启后数据保留
+- 注意：创空间转移/重命名时数据会丢失
+
+**并发安全**：
+- 使用 `threading.Lock` 保护数据库操作
+- SQLite 连接设置 `check_same_thread=False`
+
+**接口兼容**：
+- 完全兼容 `storage_supabase.py` 接口
+- 无需修改业务逻辑代码
+
+### 数据库表结构
+```sql
+-- 用户表
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    binding_code TEXT,
+    partner_id INTEGER,
+    unbind_at TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- 关系表
+CREATE TABLE relationships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user1_id INTEGER NOT NULL,
+    user2_id INTEGER NOT NULL,
+    room_id TEXT NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+
+-- 个人教练聊天记录
+CREATE TABLE coach_chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    reasoning_content TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- 情感客厅聊天记录
+CREATE TABLE lounge_chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id TEXT NOT NULL,
+    user_id INTEGER,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+```
+
+### 优势对比
+
+| 特性 | Supabase | SQLite |
+|------|----------|--------|
+| 网络延迟 | 100-1000ms | 0ms |
+| 部署复杂度 | 需配置外部服务 | 无需配置 |
+| 成本 | 免费额度有限 | 完全免费 |
+| 并发能力 | 高 | 中（单实例足够） |
+| 数据备份 | 自动 | 需手动 |
+| 适用场景 | 多实例/分布式 | 单实例 |
+
+### 注意事项
+
+1. **数据迁移**：如果 Supabase 有现有数据，需要手动导出导入
+2. **备份策略**：定期备份 `/mnt/workspace/emotion_helper.db`
+3. **扩展性**：单机部署适用，多实例部署需考虑其他方案
+
+### 下一步
+1. ⏳ 测试所有功能：注册、登录、绑定、聊天
+2. ⏳ 如有 Supabase 历史数据，编写迁移脚本
+3. ⏳ 考虑添加数据库备份机制
+
+### 参考资料
+- 迁移文档：`doc/sqlite-migration-2026-01-18.md`
+- SQLite 官方文档：https://www.sqlite.org/docs.html

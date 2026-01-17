@@ -17,12 +17,8 @@
       "value": "7596155063970758699"
     },
     {
-      "name": "SUPABASE_URL",
-      "value": "https://hovggyenuuanfmcydmfq.supabase.co"
-    },
-    {
-      "name": "SUPABASE_KEY",
-      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvdmdneWVudXVhbmZtY3lkbWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NjQxOTksImV4cCI6MjA4NDI0MDE5OX0.FVhProEZsNLd_DHm1j9XfLLzpIgELYaZ0RjsLVyVIRI"
+      "name": "FLASK_ENV",
+      "value": "production"
     }
   ]
 }

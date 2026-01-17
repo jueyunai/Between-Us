@@ -7,6 +7,45 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="/static/css/common.css">
     <style>
+        /* 冷静期提示条 */
+        .cooldown-notice {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1));
+            border-bottom: 1px solid rgba(255, 193, 7, 0.3);
+            padding: 12px 20px;
+            display: none; /* 默认隐藏 */
+        }
+
+        .cooldown-notice.show {
+            display: block;
+        }
+
+        .cooldown-notice-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #8b6914;
+        }
+
+        .cooldown-notice-icon {
+            font-size: 16px;
+        }
+
+        .cooldown-notice-text {
+            flex: 1;
+        }
+
+        .cooldown-notice-link {
+            color: #d97706;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .cooldown-notice-link:hover {
+            text-decoration: underline;
+        }
+
         /* 情侣标识独立栏 */
         .couple-bar {
             background: linear-gradient(135deg, rgba(230, 168, 164, 0.12), rgba(199, 178, 255, 0.16));
@@ -171,8 +210,26 @@
             padding: 10px 14px;
             border-radius: 8px;
             word-wrap: break-word;
-            line-height: 1.5;
+            line-height: 1.65;
             font-size: 15px;
+            white-space: pre-wrap; /* 保留换行符 */
+        }
+
+        /* 教练消息特殊样式 - 支持富文本格式 */
+        .message.assistant .message-content {
+            line-height: 1.7;
+            letter-spacing: 0.02em;
+        }
+
+        /* 教练消息内的格式化元素 */
+        .message.assistant .message-content strong {
+            color: #9d7a5a;
+            font-weight: 600;
+        }
+
+        .message.assistant .message-content em {
+            font-style: italic;
+            color: #8b7a6a;
         }
 
         /* 自己的消息气泡 */
@@ -237,6 +294,15 @@
                                 </button>
                 <h2>💑 情感客厅</h2>
                 <div></div>
+            </div>
+
+            <!-- 冷静期提示条 -->
+            <div class="cooldown-notice" id="cooldownNotice">
+                <div class="cooldown-notice-content">
+                    <span class="cooldown-notice-icon">⏳</span>
+                    <span class="cooldown-notice-text">冷静期中，仍可正常使用客厅。如需撤销解绑，</span>
+                    <a href="/profile" class="cooldown-notice-link">前往个人中心 →</a>
+                </div>
             </div>
 
             <div class="couple-bar">
@@ -327,6 +393,14 @@
             userId = userData.user.id;
             userPhone = userData.user.phone || '';
             
+            // 检查是否在冷静期
+            if (userData.user.unbind_at) {
+                const cooldownNotice = document.getElementById('cooldownNotice');
+                if (cooldownNotice) {
+                    cooldownNotice.classList.add('show');
+                }
+            }
+            
             // 用手机号后4位作为昵称
             userNickname = userPhone ? userPhone.slice(-4) : '我';
             
@@ -412,9 +486,25 @@
                 }
             });
 
+            // 监听 AI 开始分析事件（所有用户都会收到）
+            socket.on('ai_thinking_start', () => {
+                // 如果还没有流式消息占位，创建一个
+                if (!streamingMsgId) {
+                    streamingMsgId = 'ai_streaming_' + Date.now();
+                    const streamingMsg = {
+                        id: streamingMsgId,
+                        role: 'assistant',
+                        content: '🎯 情感教练正在分析...',
+                        isStreaming: true
+                    };
+                    messages.push(streamingMsg);
+                    renderMessages();
+                }
+            });
+
             // 监听 AI 流式输出
             socket.on('ai_stream', (data) => {
-                // 如果还没有流式消息占位，先创建一个（为了让另一个用户也能看到）
+                // 如果还没有流式消息占位，先创建一个（防御性编程）
                 if (!streamingMsgId) {
                     streamingMsgId = 'ai_streaming_' + Date.now();
                     const streamingMsg = {
@@ -513,7 +603,13 @@
                 // 创建消息气泡
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
-                contentDiv.textContent = msg.content;
+                
+                // 根据消息类型决定是否格式化
+                if (msg.role === 'assistant') {
+                    contentDiv.innerHTML = formatMessageContent(msg.content, true);
+                } else {
+                    contentDiv.textContent = msg.content;
+                }
 
                 // 为流式消息添加特殊 ID
                 if (msg.isStreaming) {
@@ -546,11 +642,40 @@
         function updateStreamingMessage(content) {
             const streamingEl = document.getElementById('streaming-content');
             if (streamingEl) {
-                streamingEl.textContent = content;
+                streamingEl.innerHTML = formatMessageContent(content, true);
                 // 滚动到底部
                 const container = document.getElementById('chatMessages');
                 container.scrollTop = container.scrollHeight;
             }
+        }
+
+        // 格式化消息内容（支持基本 Markdown）
+        function formatMessageContent(content, isAssistant = false) {
+            if (!isAssistant) {
+                // 普通用户消息，只做基本转义
+                return escapeHtml(content);
+            }
+
+            // AI 消息，支持简单的 Markdown 格式
+            let formatted = escapeHtml(content);
+            
+            // 标题（**标题：** 或 **1. 标题：**）
+            formatted = formatted.replace(/\*\*([^*]+)：\*\*/g, '<strong style="color: #9d7a5a;">$1：</strong>');
+            
+            // 加粗文本（**文本**）
+            formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            
+            // 斜体（*文本*）
+            formatted = formatted.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            
+            return formatted;
+        }
+
+        // HTML 转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function sendMessage() {
@@ -572,18 +697,7 @@
         }
 
         function callAI() {
-            // 创建流式消息占位
-            streamingMsgId = 'ai_streaming_' + Date.now();
-            const streamingMsg = {
-                id: streamingMsgId,
-                role: 'assistant',
-                content: '🎯 情感教练正在分析...',
-                isStreaming: true
-            };
-            messages.push(streamingMsg);
-            renderMessages();
-
-            // 召唤 AI
+            // 召唤 AI（不需要在这里创建占位，后端会广播 ai_thinking_start 事件）
             if (socket && socket.connected) {
                 socket.emit('call_ai', {
                     room_id: roomId

@@ -2,7 +2,7 @@
 from flask import Flask, request, jsonify, render_template, session, Response, stream_with_context
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from storage_supabase import User, Relationship, CoachChat, LoungeChat
+from storage_sqlite import User, Relationship, CoachChat, LoungeChat
 from datetime import datetime, timedelta
 import secrets
 import os
@@ -46,21 +46,7 @@ def save_message_async(message_obj):
     thread.daemon = True
     thread.start()
 
-def check_supabase_latency():
-    """检测到 Supabase 的网络延迟"""
-    from storage_supabase import SUPABASE_URL
-    if not SUPABASE_URL:
-        return None
-    
-    try:
-        start = time.time()
-        response = requests.get(SUPABASE_URL, timeout=5)
-        latency = time.time() - start
-        print(f"[Network] Supabase 延迟: {latency:.3f}s, 状态码: {response.status_code}", flush=True)
-        return latency
-    except Exception as e:
-        print(f"[Network] Supabase 连接失败: {e}", flush=True)
-        return None
+# Supabase 延迟检测已移除（改用 SQLite）
 
 def call_coze_api(user_phone, message, bot_id, conversation_history=None):
     """
@@ -454,15 +440,15 @@ def unbind_partner():
     user.unbind_at = unbind_time
     partner.unbind_at = unbind_time
 
-    # 停用关系
-    relationships = Relationship.filter(
-        user1_id=min(user.id, partner.id),
-        user2_id=max(user.id, partner.id)
-    )
-    if relationships:
-        relationship = relationships[0]
-        relationship.is_active = False
-        relationship.save()
+    # 冷静期内关系保持活跃，不停用
+    # relationships = Relationship.filter(
+    #     user1_id=min(user.id, partner.id),
+    #     user2_id=max(user.id, partner.id)
+    # )
+    # if relationships:
+    #     relationship = relationships[0]
+    #     relationship.is_active = False
+    #     relationship.save()
 
     user.save()
     partner.save()
@@ -496,15 +482,15 @@ def cancel_unbind():
     user.unbind_at = None
     partner.unbind_at = None
 
-    # 恢复关系
-    relationships = Relationship.filter(
-        user1_id=min(user.id, partner.id),
-        user2_id=max(user.id, partner.id)
-    )
-    if relationships:
-        relationship = relationships[0]
-        relationship.is_active = True
-        relationship.save()
+    # 关系一直是活跃的，无需恢复
+    # relationships = Relationship.filter(
+    #     user1_id=min(user.id, partner.id),
+    #     user2_id=max(user.id, partner.id)
+    # )
+    # if relationships:
+    #     relationship = relationships[0]
+    #     relationship.is_active = True
+    #     relationship.save()
 
     user.save()
     partner.save()
@@ -847,6 +833,9 @@ def handle_call_ai(data):
     """召唤 AI 助手（流式输出）"""
     room_id = data.get('room_id')
 
+    # 先向房间广播"开始分析"事件，让所有用户都看到提示
+    emit('ai_thinking_start', {}, room=room_id)
+
     # 获取最近的对话记录（最近10条）
     all_history = LoungeChat.filter(room_id=room_id)
     all_history.sort(key=lambda x: x.created_at, reverse=True)
@@ -1029,16 +1018,11 @@ def lounge_debug():
 
 if __name__ == '__main__':
     import os
+    from storage_sqlite import DB_PATH
     
-    # 启动时检测网络延迟
     print("\n" + "="*60, flush=True)
-    print("[启动检测] 正在测试 Supabase 连接...", flush=True)
-    latency = check_supabase_latency()
-    if latency:
-        if latency > 1.0:
-            print(f"[警告] Supabase 延迟较高: {latency:.3f}s，建议检查网络", flush=True)
-        else:
-            print(f"[正常] Supabase 延迟: {latency:.3f}s", flush=True)
+    print("[启动] 使用 SQLite 本地数据库", flush=True)
+    print(f"[启动] 数据库路径: {DB_PATH}", flush=True)
     print("="*60 + "\n", flush=True)
     
     debug_mode = os.environ.get('FLASK_ENV') != 'production'

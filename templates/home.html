@@ -375,7 +375,8 @@
 
                 const user = data.user;
                 const isCoolingDown = Boolean(user.unbind_at);
-                const canEnterLounge = user.has_partner && !isCoolingDown;
+                // 冷静期也允许进入情感客厅，只是显示提示
+                const canEnterLounge = user.has_partner;
                 setLoungeLocked(!canEnterLounge, isCoolingDown ? 'cooldown' : 'binding');
             } catch (error) {
                 console.error(error);
