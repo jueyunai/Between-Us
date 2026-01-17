@@ -2,7 +2,7 @@
 from flask import Flask, request, jsonify, render_template, session, Response, stream_with_context
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from storage import User, Relationship, CoachChat, LoungeChat
+from storage_supabase import User, Relationship, CoachChat, LoungeChat
 from datetime import datetime, timedelta
 import secrets
 import os
@@ -952,6 +952,12 @@ def coach():
 def lounge():
     """情感客厅"""
     return render_template('lounge.html')
+
+
+@app.route('/lounge/debug')
+def lounge_debug():
+    """情感客厅调试页面"""
+    return render_template('lounge_debug.html')
 
 
 if __name__ == '__main__':

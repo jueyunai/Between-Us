@@ -5,3 +5,11 @@ instance/
 .DS_Store
 *.pyc
 data/
+
+# 回收站目录（已废弃的文件）
+.recycle_bin/
+
+# 临时和日志文件
+*.log
+coze_debug.json
+app.log

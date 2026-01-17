@@ -1,3 +1,12 @@
+---
+title: 情感陪伴助手
+emoji: 💝
+colorFrom: pink
+colorTo: purple
+sdk: docker
+app_port: 7860
+---
+
 # 💝 情感陪伴助手
 
 一款面向亲密关系用户的 AI 辅助沟通工具，通过双聊天室模式实现个人情感梳理与双人共同沟通。
@@ -24,35 +33,76 @@
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 方式一：使用 Supabase（推荐）
 
+**优势**：支持高并发、自动备份、免费额度充足
+
+1. **安装依赖**
 ```bash
-cd emotion-helper
 pip install -r requirements.txt
 ```
 
-### 2. 配置环境变量
-
-复制 `.env.example` 为 `.env`，并填写你的 OpenAI API Key：
-
+2. **配置 Supabase**
 ```bash
-cp .env.example .env
+# 使用快速配置脚本
+bash setup_supabase.sh
+
+# 或手动配置（详见 doc/supabase-migration-guide.md）
 ```
 
-编辑 `.env` 文件：
+3. **修改代码**
+
+在 `app.py` 第 4 行，将：
+```python
+from storage import User, Relationship, CoachChat, LoungeChat
 ```
-OPENAI_API_KEY=sk-your-api-key-here
+改为：
+```python
+from storage_supabase import User, Relationship, CoachChat, LoungeChat
 ```
 
-### 3. 运行项目
-
+4. **启动应用**
 ```bash
 python app.py
 ```
 
-### 4. 访问应用
+5. **访问应用**
 
-打开浏览器访问：`http://localhost:5000`
+打开浏览器访问：`http://localhost:7860`
+
+📖 **详细文档**：[Supabase 迁移指南](doc/supabase-migration-guide.md)
+
+---
+
+### 方式二：使用 JSON 文件存储（开发测试）
+
+1. **安装依赖**
+```bash
+pip install -r requirements.txt
+```
+
+2. **配置环境变量**
+```bash
+cp .env.example .env
+```
+
+编辑 `.env` 文件，填写 AI API Key：
+```
+COZE_API_KEY=your-coze-api-key-here
+COZE_BOT_ID_COACH=your-coach-bot-id
+COZE_BOT_ID_LOUNGE=your-lounge-bot-id
+```
+
+3. **运行项目**
+```bash
+python app.py
+```
+
+4. **访问应用**
+
+打开浏览器访问：`http://localhost:7860`
+
+> ⚠️ **注意**：JSON 存储不支持并发，仅适合开发测试，生产环境请使用 Supabase
 
 ## 📱 使用流程
 
@@ -74,26 +124,36 @@ python app.py
 - **Socket.IO** - 客户端 WebSocket
 
 ### 数据库
-- **SQLite** - 轻量级数据库
+- **Supabase PostgreSQL** - 生产环境数据库（推荐）
+- **JSON 文件存储** - 开发测试备选方案
 
 ## 📂 项目结构
 
 ```
 emotion-helper/
-├── app.py                 # 主应用文件
-├── models.py              # 数据库模型
-├── requirements.txt       # Python 依赖
-├── .env.example          # 环境变量示例
+├── app.py                      # 主应用文件
+├── storage.py                  # JSON 文件存储（开发测试）
+├── storage_supabase.py         # Supabase 存储（生产环境）
+├── models.py                   # 数据库模型（未使用）
+├── migrate_to_supabase.py      # 数据迁移脚本
+├── supabase_schema.sql         # Supabase 表结构
+├── setup_supabase.sh           # Supabase 快速配置脚本
+├── requirements.txt            # Python 依赖
+├── .env.example               # 环境变量示例
+├── doc/
+│   └── supabase-migration-guide.md  # Supabase 迁移指南
+├── data/                      # JSON 数据目录（可选）
 ├── static/
 │   ├── css/
-│   │   └── common.css    # 公共样式
+│   │   └── common.css         # 公共样式
 │   ├── js/
 │   └── images/
 └── templates/
-    ├── login.html        # 登录页面
-    ├── home.html         # 主页
-    ├── coach.html        # 个人教练聊天室
-    └── lounge.html       # 情感客厅聊天室
+    ├── login.html             # 登录页面
+    ├── home.html              # 主页
+    ├── profile.html           # 个人中心
+    ├── coach.html             # 个人教练聊天室
+    └── lounge.html            # 情感客厅聊天室
 ```
 
 ## 🔧 自定义 AI 模型
@@ -133,9 +193,12 @@ coze_client = Coze(api_key=os.getenv("COZE_API_KEY"))
 
 ## 📝 注意事项
 
-1. **API Key 配置**：请确保配置有效的 OpenAI API Key 或扣子 SDK
+1. **API Key 配置**：请确保配置有效的 Coze API Key
 2. **数据安全**：生产环境请使用 HTTPS 和更强的密码加密
-3. **数据库**：默认使用 SQLite，生产环境建议使用 MySQL/PostgreSQL
+3. **数据库选择**：
+   - 开发测试：可使用 JSON 文件存储
+   - 生产环境：强烈推荐使用 Supabase PostgreSQL
+4. **并发支持**：JSON 存储不支持并发，多用户同时访问请使用 Supabase
 
 ## 🎓 路演展示建议
 

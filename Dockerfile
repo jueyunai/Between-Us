@@ -25,8 +25,5 @@ EXPOSE 7860
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 
-# 复制环境变量示例文件
-COPY .env.example .env
-
-# 运行应用
+# 运行应用（ModelScope 会通过环境变量注入配置）
 CMD ["python", "app.py"]
