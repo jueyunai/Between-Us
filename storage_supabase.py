@@ -16,10 +16,26 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError("请在 .env 文件中配置 SUPABASE_URL 和 SUPABASE_KEY")
+# 调试：打印环境变量（只打印前后几个字符，不泄露完整key）
+print(f"[Debug] SUPABASE_URL: {SUPABASE_URL}", flush=True)
+print(f"[Debug] SUPABASE_KEY 长度: {len(SUPABASE_KEY)}, 前10字符: {SUPABASE_KEY[:10]}...", flush=True)
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# 延迟初始化：只在真正使用时才检查和创建客户端
+def get_supabase_client():
+    """获取 Supabase 客户端（延迟初始化）"""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise ValueError("请在环境变量中配置 SUPABASE_URL 和 SUPABASE_KEY")
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# 全局客户端实例（首次使用时初始化）
+_supabase_client = None
+
+def supabase():
+    """获取全局 Supabase 客户端"""
+    global _supabase_client
+    if _supabase_client is None:
+        _supabase_client = get_supabase_client()
+    return _supabase_client
 
 
 class User:
@@ -111,12 +127,12 @@ class User:
         try:
             if self.id:
                 # 更新现有用户
-                response = supabase.table('users').update(user_data).eq('id', self.id).execute()
+                response = supabase().table('users').update(user_data).eq('id', self.id).execute()
                 if response.data:
                     return self
             else:
                 # 创建新用户
-                response = supabase.table('users').insert(user_data).execute()
+                response = supabase().table('users').insert(user_data).execute()
                 if response.data and len(response.data) > 0:
                     self.id = response.data[0]['id']
                     self.created_at = datetime.fromisoformat(response.data[0]['created_at'].replace('Z', '+00:00'))
@@ -129,7 +145,7 @@ class User:
     def get(id):
         """根据ID获取用户"""
         try:
-            response = supabase.table('users').select('*').eq('id', id).execute()
+            response = supabase().table('users').select('*').eq('id', id).execute()
             if response.data and len(response.data) > 0:
                 return User.from_dict(response.data[0])
             return None
@@ -141,7 +157,7 @@ class User:
     def filter(**kwargs):
         """根据条件过滤用户"""
         try:
-            query = supabase.table('users').select('*')
+            query = supabase().table('users').select('*')
             for key, value in kwargs.items():
                 query = query.eq(key, value)
             response = query.execute()
@@ -162,7 +178,7 @@ class User:
     def all():
         """获取所有用户"""
         try:
-            response = supabase.table('users').select('*').execute()
+            response = supabase().table('users').select('*').execute()
             return [User.from_dict(data) for data in response.data]
         except Exception as e:
             print(f"[Supabase Error] 获取所有用户失败: {e}")
@@ -237,10 +253,10 @@ class Relationship:
         try:
             if self.id:
                 # 更新现有关系
-                response = supabase.table('relationships').update(relationship_data).eq('id', self.id).execute()
+                response = supabase().table('relationships').update(relationship_data).eq('id', self.id).execute()
             else:
                 # 创建新关系
-                response = supabase.table('relationships').insert(relationship_data).execute()
+                response = supabase().table('relationships').insert(relationship_data).execute()
                 if response.data and len(response.data) > 0:
                     self.id = response.data[0]['id']
                     self.created_at = datetime.fromisoformat(response.data[0]['created_at'].replace('Z', '+00:00'))
@@ -253,7 +269,7 @@ class Relationship:
     def get(id):
         """根据ID获取关系"""
         try:
-            response = supabase.table('relationships').select('*').eq('id', id).execute()
+            response = supabase().table('relationships').select('*').eq('id', id).execute()
             if response.data and len(response.data) > 0:
                 return Relationship.from_dict(response.data[0])
             return None
@@ -265,7 +281,7 @@ class Relationship:
     def filter(**kwargs):
         """根据条件过滤关系"""
         try:
-            query = supabase.table('relationships').select('*')
+            query = supabase().table('relationships').select('*')
             for key, value in kwargs.items():
                 query = query.eq(key, value)
             response = query.execute()
@@ -278,7 +294,7 @@ class Relationship:
     def all():
         """获取所有关系"""
         try:
-            response = supabase.table('relationships').select('*').execute()
+            response = supabase().table('relationships').select('*').execute()
             return [Relationship.from_dict(data) for data in response.data]
         except Exception as e:
             print(f"[Supabase Error] 获取所有关系失败: {e}")
@@ -356,10 +372,10 @@ class CoachChat:
         try:
             if self.id:
                 # 更新现有记录
-                response = supabase.table('coach_chats').update(chat_data).eq('id', self.id).execute()
+                response = supabase().table('coach_chats').update(chat_data).eq('id', self.id).execute()
             else:
                 # 创建新记录
-                response = supabase.table('coach_chats').insert(chat_data).execute()
+                response = supabase().table('coach_chats').insert(chat_data).execute()
                 if response.data and len(response.data) > 0:
                     self.id = response.data[0]['id']
                     self.created_at = datetime.fromisoformat(response.data[0]['created_at'].replace('Z', '+00:00'))
@@ -372,7 +388,7 @@ class CoachChat:
     def get(id):
         """根据ID获取聊天记录"""
         try:
-            response = supabase.table('coach_chats').select('*').eq('id', id).execute()
+            response = supabase().table('coach_chats').select('*').eq('id', id).execute()
             if response.data and len(response.data) > 0:
                 return CoachChat.from_dict(response.data[0])
             return None
@@ -384,7 +400,7 @@ class CoachChat:
     def filter(**kwargs):
         """根据条件过滤聊天记录"""
         try:
-            query = supabase.table('coach_chats').select('*')
+            query = supabase().table('coach_chats').select('*')
             for key, value in kwargs.items():
                 query = query.eq(key, value)
             # 按创建时间排序
@@ -398,7 +414,7 @@ class CoachChat:
     def all():
         """获取所有聊天记录"""
         try:
-            response = supabase.table('coach_chats').select('*').order('created_at', desc=False).execute()
+            response = supabase().table('coach_chats').select('*').order('created_at', desc=False).execute()
             return [CoachChat.from_dict(data) for data in response.data]
         except Exception as e:
             print(f"[Supabase Error] 获取所有教练聊天记录失败: {e}")
@@ -473,10 +489,10 @@ class LoungeChat:
         try:
             if self.id:
                 # 更新现有记录
-                response = supabase.table('lounge_chats').update(chat_data).eq('id', self.id).execute()
+                response = supabase().table('lounge_chats').update(chat_data).eq('id', self.id).execute()
             else:
                 # 创建新记录
-                response = supabase.table('lounge_chats').insert(chat_data).execute()
+                response = supabase().table('lounge_chats').insert(chat_data).execute()
                 if response.data and len(response.data) > 0:
                     self.id = response.data[0]['id']
                     self.created_at = datetime.fromisoformat(response.data[0]['created_at'].replace('Z', '+00:00'))
@@ -489,7 +505,7 @@ class LoungeChat:
     def get(id):
         """根据ID获取聊天记录"""
         try:
-            response = supabase.table('lounge_chats').select('*').eq('id', id).execute()
+            response = supabase().table('lounge_chats').select('*').eq('id', id).execute()
             if response.data and len(response.data) > 0:
                 return LoungeChat.from_dict(response.data[0])
             return None
@@ -501,7 +517,7 @@ class LoungeChat:
     def filter(**kwargs):
         """根据条件过滤聊天记录"""
         try:
-            query = supabase.table('lounge_chats').select('*')
+            query = supabase().table('lounge_chats').select('*')
             for key, value in kwargs.items():
                 query = query.eq(key, value)
             # 按创建时间排序
@@ -515,7 +531,7 @@ class LoungeChat:
     def all():
         """获取所有聊天记录"""
         try:
-            response = supabase.table('lounge_chats').select('*').order('created_at', desc=False).execute()
+            response = supabase().table('lounge_chats').select('*').order('created_at', desc=False).execute()
             return [LoungeChat.from_dict(data) for data in response.data]
         except Exception as e:
             print(f"[Supabase Error] 获取所有客厅聊天记录失败: {e}")

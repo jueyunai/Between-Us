@@ -741,11 +741,13 @@
             renderMessages();
             input.value = '';
 
+            // 创建流式消息占位
             createStreamingMessage();
 
             let reasoningText = '';
             let answerText = '';
             let hasReasoning = false;
+            let streamingMessageCreated = true;  // 标记已创建流式消息
 
             try {
                 const response = await fetch('/api/coach/chat/stream', {
@@ -804,9 +806,7 @@
                                     container.scrollTop = container.scrollHeight;
                                 }
                                 else if (data.type === 'done') {
-                                    const answerEl = document.getElementById('answerContent');
-                                    answerEl.textContent = data.final_content || answerText;
-
+                                    // 流式完成，保存消息并重新渲染
                                     if (data.final_content) {
                                         messages.push({
                                             role: 'assistant',
@@ -814,6 +814,10 @@
                                             reasoning_content: data.reasoning_content || null
                                         });
                                     }
+                                    
+                                    // 重新渲染消息列表（会移除临时的流式消息框）
+                                    renderMessages();
+                                    streamingMessageCreated = false;
                                 }
                                 else if (data.type === 'error') {
                                     const answerEl = document.getElementById('answerContent');
@@ -830,6 +834,10 @@
                 const answerEl = document.getElementById('answerContent');
                 if (answerEl) {
                     answerEl.textContent = '网络错误，请检查连接。';
+                }
+                // 发生错误时也要重新渲染，清理临时消息框
+                if (streamingMessageCreated) {
+                    renderMessages();
                 }
             } finally {
                 isStreaming = false;

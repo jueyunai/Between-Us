@@ -8,6 +8,8 @@ import secrets
 import os
 import requests
 import json
+import threading
+import time
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -27,6 +29,38 @@ COZE_API_URL = "https://api.coze.cn/v3/chat"
 COZE_API_KEY = os.getenv("COZE_API_KEY", "")
 COZE_BOT_ID_COACH = os.getenv("COZE_BOT_ID_COACH", "")
 COZE_BOT_ID_LOUNGE = os.getenv("COZE_BOT_ID_LOUNGE", "")
+
+# ==================== 性能优化工具 ====================
+def save_message_async(message_obj):
+    """异步保存消息到数据库（不阻塞主线程）"""
+    def _save():
+        try:
+            start = time.time()
+            message_obj.save()
+            duration = time.time() - start
+            print(f"[DB Perf] 异步保存耗时: {duration:.3f}s", flush=True)
+        except Exception as e:
+            print(f"[Async Save Error] {e}", flush=True)
+    
+    thread = threading.Thread(target=_save)
+    thread.daemon = True
+    thread.start()
+
+def check_supabase_latency():
+    """检测到 Supabase 的网络延迟"""
+    from storage_supabase import SUPABASE_URL
+    if not SUPABASE_URL:
+        return None
+    
+    try:
+        start = time.time()
+        response = requests.get(SUPABASE_URL, timeout=5)
+        latency = time.time() - start
+        print(f"[Network] Supabase 延迟: {latency:.3f}s, 状态码: {response.status_code}", flush=True)
+        return latency
+    except Exception as e:
+        print(f"[Network] Supabase 连接失败: {e}", flush=True)
+        return None
 
 def call_coze_api(user_phone, message, bot_id, conversation_history=None):
     """
@@ -560,9 +594,9 @@ def coach_chat_stream():
     user = User.get(user_id)
     user_phone = user.phone
 
-    # 保存用户消息
+    # 异步保存用户消息（不阻塞）
     user_msg = CoachChat(user_id=user_id, role='user', content=message)
-    user_msg.save()
+    save_message_async(user_msg)
 
     # 获取历史对话（最近5条）
     all_history = CoachChat.filter(user_id=user_id)
@@ -615,6 +649,17 @@ def coach_chat_stream():
             current_event = None
             final_content = ""
             reasoning_content = ""
+            
+            # 预先创建AI消息记录（边流式边保存策略）
+            ai_msg = CoachChat(
+                user_id=user_id, 
+                role='assistant', 
+                content="",  # 初始为空
+                reasoning_content=None
+            )
+            ai_msg.save()  # 先保存一次，获取ID
+            last_save_time = time.time()
+            save_interval = 2.0  # 每2秒保存一次
 
             for line in response.iter_lines():
                 if line:
@@ -663,6 +708,14 @@ def coach_chat_stream():
                                 if content:
                                     final_content += content
                                     yield f"data: {json.dumps({'type': 'content', 'content': content}, ensure_ascii=False)}\n\n"
+                                    
+                                    # 定期保存（边流式边保存，防止数据丢失）
+                                    current_time = time.time()
+                                    if current_time - last_save_time >= save_interval:
+                                        ai_msg.content = final_content
+                                        ai_msg.reasoning_content = reasoning_content if reasoning_content else None
+                                        save_message_async(ai_msg)
+                                        last_save_time = current_time
 
                             # 处理完成事件
                             elif current_event == 'conversation.message.completed' and role == 'assistant':
@@ -677,15 +730,15 @@ def coach_chat_stream():
                         print(f"[Stream Error] {e}", flush=True)
                         continue
 
-            # 保存 AI 回复到存储（包含思考过程）
+            # 最终保存完整内容
             if final_content:
-                ai_msg = CoachChat(
-                    user_id=user_id, 
-                    role='assistant', 
-                    content=final_content,
-                    reasoning_content=reasoning_content if reasoning_content else None
-                )
-                ai_msg.save()
+                ai_msg.content = final_content
+                ai_msg.reasoning_content = reasoning_content if reasoning_content else None
+                ai_msg.save()  # 同步保存最终版本
+                print(f"[Coach Stream] 最终保存内容长度: {len(final_content)}", flush=True)
+            else:
+                # 如果没有内容，删除之前创建的空记录
+                print(f"[Coach Stream] 未收到AI回复，删除空记录", flush=True)
 
             # 发送完成信号
             yield f"data: {json.dumps({'type': 'done', 'final_content': final_content, 'reasoning_content': reasoning_content}, ensure_ascii=False)}\n\n"
@@ -780,9 +833,9 @@ def handle_send_message(data):
     user_id = data.get('user_id')
     content = data.get('content')
 
-    # 保存消息
+    # 异步保存消息（不阻塞）
     msg = LoungeChat(room_id=room_id, user_id=user_id, role='user', content=content)
-    msg.save()
+    save_message_async(msg)
 
     # 广播消息，并告知前端是否需要触发 AI
     is_calling_ai = '@AI' in content or '@ai' in content or '@教练' in content
@@ -849,6 +902,12 @@ def handle_call_ai(data):
 
         current_event = None
         final_content = ""
+        
+        # 预先创建AI消息记录（边流式边保存策略）
+        ai_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content="")
+        ai_msg.save()  # 先保存一次，获取ID
+        last_save_time = time.time()
+        save_interval = 2.0  # 每2秒保存一次
 
         for line in response.iter_lines():
             if line:
@@ -892,6 +951,13 @@ def handle_call_ai(data):
                                 # 流式推送到前端
                                 emit('ai_stream', {'type': 'delta', 'content': content}, room=room_id)
                                 socketio.sleep(0)  # 让出控制权，确保消息及时发送
+                                
+                                # 定期保存（边流式边保存，防止数据丢失）
+                                current_time = time.time()
+                                if current_time - last_save_time >= save_interval:
+                                    ai_msg.content = final_content
+                                    save_message_async(ai_msg)
+                                    last_save_time = current_time
 
                         # 处理完成事件
                         elif current_event == 'conversation.message.completed' and role == 'assistant':
@@ -903,14 +969,15 @@ def handle_call_ai(data):
                     print(f"[Lounge Stream Error] {e}", flush=True)
                     continue
 
-        # 保存 AI 消息到存储
+        # 最终保存完整内容
         if final_content:
-            ai_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content=final_content)
-            ai_msg.save()
+            ai_msg.content = final_content
+            ai_msg.save()  # 同步保存最终版本
+            print(f"[Lounge Stream] 最终保存内容长度: {len(final_content)}", flush=True)
         else:
-            # 如果没有收到内容，发送默认消息
+            # 如果没有收到内容，更新为默认消息
             ai_reply = "AI 未返回有效回复，请稍后重试"
-            ai_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content=ai_reply)
+            ai_msg.content = ai_reply
             ai_msg.save()
             emit('ai_stream', {'type': 'delta', 'content': ai_reply}, room=room_id)
             emit('ai_stream', {'type': 'done'}, room=room_id)
@@ -962,5 +1029,17 @@ def lounge_debug():
 
 if __name__ == '__main__':
     import os
+    
+    # 启动时检测网络延迟
+    print("\n" + "="*60, flush=True)
+    print("[启动检测] 正在测试 Supabase 连接...", flush=True)
+    latency = check_supabase_latency()
+    if latency:
+        if latency > 1.0:
+            print(f"[警告] Supabase 延迟较高: {latency:.3f}s，建议检查网络", flush=True)
+        else:
+            print(f"[正常] Supabase 延迟: {latency:.3f}s", flush=True)
+    print("="*60 + "\n", flush=True)
+    
     debug_mode = os.environ.get('FLASK_ENV') != 'production'
     socketio.run(app, debug=debug_mode, host='0.0.0.0', port=7860, allow_unsafe_werkzeug=True)
