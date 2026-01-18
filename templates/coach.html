@@ -8,9 +8,133 @@
     <link rel="stylesheet" href="/static/css/common.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
+        /* 微信风格聊天布局 */
+        .chat-messages {
+            padding: 16px 8px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding: 0;
+            width: 100%;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+            justify-content: flex-start;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        /* 头像样式 */
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* 自己的头像 - 粉紫渐变 */
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #e6a8a4, #d4a5c9);
+        }
+
+        /* 教练头像 - 温暖橙色 */
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #f0c27b, #d4a574);
+        }
+
+        /* 内容区域 */
+        .message-body {
+            max-width: calc(100% - 64px); /* 扩展到对侧头像左边框：容器宽度 - 头像(40px) - 间距(8px) - 内边距(16px) */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.user .message-body {
+            align-items: flex-end;
+        }
+
+        .message.assistant .message-body {
+            align-items: flex-start;
+        }
+
+        /* 昵称样式 */
+        .message-sender {
+            margin-bottom: 4px;
+            padding: 0 4px;
+        }
+
+        .message.user .message-sender {
+            display: none;
+        }
+
+        .sender-name {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            color: #9d7a5a;
+        }
+
+        .sender-name .coach-icon {
+            font-size: 11px;
+            margin-right: 2px;
+        }
+
+        /* 消息气泡 */
+        .message .message-content {
+            max-width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            line-height: 1.65;
+            font-size: 15px;
+            white-space: pre-wrap;
+        }
+
+        /* 自己的消息气泡 */
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2));
+            color: #fff;
+            border-radius: 8px 2px 8px 8px;
+        }
+
+        /* 教练的消息气泡 */
+        .message.assistant .message-content {
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--home-ink);
+            border: 1px solid rgba(240, 194, 123, 0.3);
+            border-radius: 2px 8px 8px 8px;
+            line-height: 1.7;
+            letter-spacing: 0.02em;
+        }
+
+        /* 教练消息内的格式化元素 */
+        .message.assistant .message-content strong {
+            color: #9d7a5a;
+            font-weight: 600;
+        }
+
+        .message.assistant .message-content em {
+            font-style: italic;
+            color: #8b7a6a;
+        }
+
         /* 思考过程折叠样式 */
         .thinking-container {
             margin-bottom: 8px;
+            width: 100%;
         }
 
         .thinking-toggle {
@@ -65,12 +189,9 @@
         }
 
         @keyframes pulse {
-
-            0%,
-            100% {
+            0%, 100% {
                 opacity: 1;
             }
-
             50% {
                 opacity: 0.7;
             }
@@ -87,14 +208,10 @@
         }
 
         @keyframes blink {
-
-            0%,
-            50% {
+            0%, 50% {
                 opacity: 1;
             }
-
-            51%,
-            100% {
+            51%, 100% {
                 opacity: 0;
             }
         }
@@ -102,7 +219,7 @@
         /* 正文内容样式 */
         .answer-content {
             white-space: pre-wrap;
-            line-height: 1.6;
+            line-height: 1.7;
         }
 
         /* 分享模态框样式 */
@@ -651,6 +768,26 @@
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${msg.role}`;
 
+                // 创建头像
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'message-avatar';
+                avatarDiv.textContent = msg.role === 'user' ? '我' : '✨';
+
+                // 创建内容区域
+                const bodyDiv = document.createElement('div');
+                bodyDiv.className = 'message-body';
+
+                // 创建昵称标签（只有教练的消息显示）
+                const senderDiv = document.createElement('div');
+                senderDiv.className = 'message-sender';
+                const senderSpan = document.createElement('span');
+                senderSpan.className = 'sender-name';
+                if (msg.role === 'assistant') {
+                    senderSpan.innerHTML = '<span class="coach-icon">✨</span>情感教练';
+                }
+                senderDiv.appendChild(senderSpan);
+
+                // 创建消息气泡
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
 
@@ -677,17 +814,53 @@
 
                     const answerContent = document.createElement('div');
                     answerContent.className = 'answer-content';
-                    answerContent.textContent = msg.content;
+                    answerContent.innerHTML = formatMessageContent(msg.content, true);
                     contentDiv.appendChild(answerContent);
+                } else if (msg.role === 'assistant') {
+                    contentDiv.innerHTML = formatMessageContent(msg.content, true);
                 } else {
                     contentDiv.textContent = msg.content;
                 }
 
-                messageDiv.appendChild(contentDiv);
+                // 组装内容区域
+                bodyDiv.appendChild(senderDiv);
+                bodyDiv.appendChild(contentDiv);
+
+                // 组装消息
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(bodyDiv);
                 container.appendChild(messageDiv);
             });
 
             container.scrollTop = container.scrollHeight;
+        }
+
+        // 格式化消息内容（支持基本 Markdown）
+        function formatMessageContent(content, isAssistant = false) {
+            if (!isAssistant) {
+                return escapeHtml(content);
+            }
+
+            // AI 消息，支持简单的 Markdown 格式
+            let formatted = escapeHtml(content);
+            
+            // 标题（**标题：** 或 **1. 标题：**）
+            formatted = formatted.replace(/\*\*([^*]+)：\*\*/g, '<strong style="color: #9d7a5a;">$1：</strong>');
+            
+            // 加粗文本（**文本**）
+            formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            
+            // 斜体（*文本*）
+            formatted = formatted.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            
+            return formatted;
+        }
+
+        // HTML 转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function createStreamingMessage() {
@@ -697,6 +870,24 @@
             messageDiv.className = 'message assistant';
             messageDiv.id = 'streamingMessage';
 
+            // 创建头像
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'message-avatar';
+            avatarDiv.textContent = '✨';
+
+            // 创建内容区域
+            const bodyDiv = document.createElement('div');
+            bodyDiv.className = 'message-body';
+
+            // 创建昵称标签
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'message-sender';
+            const senderSpan = document.createElement('span');
+            senderSpan.className = 'sender-name';
+            senderSpan.innerHTML = '<span class="coach-icon">✨</span>情感教练';
+            senderDiv.appendChild(senderSpan);
+
+            // 创建消息气泡
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
 
@@ -726,7 +917,14 @@
 
             contentDiv.appendChild(thinkingContainer);
             contentDiv.appendChild(answerContent);
-            messageDiv.appendChild(contentDiv);
+
+            // 组装内容区域
+            bodyDiv.appendChild(senderDiv);
+            bodyDiv.appendChild(contentDiv);
+
+            // 组装消息
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(bodyDiv);
             container.appendChild(messageDiv);
 
             container.scrollTop = container.scrollHeight;
