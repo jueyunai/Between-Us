@@ -26,6 +26,35 @@ COZE_API_KEY = os.getenv("COZE_API_KEY", "")
 COZE_BOT_ID_COACH = os.getenv("COZE_BOT_ID_COACH", "")
 COZE_BOT_ID_LOUNGE = os.getenv("COZE_BOT_ID_LOUNGE", "")
 
+# 开场白配置
+COACH_GREETINGS = [
+    "嗨，我在这里呢。无论发生了什么，你都可以跟我说。我会站在你这边，也会帮你看得更清楚一些。❤️",
+    "此刻的你，心里有什么感受想说说吗？不用担心说得好不好，我会认真听的。💭",
+    "来啦！就像跟老朋友聊天一样，有什么想说的尽管说～我既是你的树洞，也是你的镜子。🌟"
+]
+
+LOUNGE_GREETINGS = [
+    "欢迎来到你们的情感客厅。这里是专属于你们两个人的安全空间，我会在需要时出现，陪你们好好聊聊。💕",
+    "很高兴见到你们。在这里，你们可以坦诚地说出自己的感受。如果需要我帮忙梳理，随时@我就好。🤝",
+    "这里是属于你们的小天地。有我在，你们可以放心地说出心里话。需要帮忙时，@我一下就好～💫"
+]
+
+def create_coach_greeting(user_id):
+    """为新用户创建个人教练开场白"""
+    import random
+    greeting = random.choice(COACH_GREETINGS)
+    greeting_msg = CoachChat(user_id=user_id, role='assistant', content=greeting)
+    greeting_msg.save()
+    print(f"[Coach] 已为用户 {user_id} 创建开场白", flush=True)
+
+def create_lounge_greeting(room_id):
+    """为新房间创建情感客厅开场白"""
+    import random
+    greeting = random.choice(LOUNGE_GREETINGS)
+    greeting_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content=greeting)
+    greeting_msg.save()
+    print(f"[Lounge] 已为房间 {room_id} 创建开场白", flush=True)
+
 # ==================== 性能优化工具 ====================
 def save_message_async(message_obj):
     """异步保存消息到数据库（不阻塞主线程）"""
@@ -278,6 +307,9 @@ def register():
     user = User(phone=phone, password=password, nickname=nickname)
     user.generate_binding_code()
     user.save()
+    
+    # 为新用户创建个人教练开场白
+    create_coach_greeting(user.id)
 
     return jsonify({
         'success': True,
@@ -440,6 +472,9 @@ def bind_partner():
     relationship.save()
     user.save()
     partner.save()
+    
+    # 为新房间创建情感客厅开场白
+    create_lounge_greeting(room_id)
 
     return jsonify({
         'success': True,

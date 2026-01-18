@@ -42,6 +42,7 @@ def init_db():
                 binding_code TEXT,
                 partner_id INTEGER,
                 unbind_at TEXT,
+                coach_greeting_shown INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL
             )
         ''')
@@ -54,6 +55,7 @@ def init_db():
                 user2_id INTEGER NOT NULL,
                 room_id TEXT NOT NULL,
                 is_active INTEGER DEFAULT 1,
+                greeting_shown INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL
             )
         ''')
@@ -111,9 +113,134 @@ def init_db():
             cursor.execute("ALTER TABLE users ADD COLUMN nickname TEXT")
             print("[SQLite] 迁移完成", flush=True)
         
+        # 数据库迁移：为已存在的 users 表添加 coach_greeting_shown 字段
+        try:
+            cursor.execute("SELECT coach_greeting_shown FROM users LIMIT 1")
+        except sqlite3.OperationalError:
+            # 字段不存在，需要添加
+            print("[SQLite] 迁移：为 users 表添加 coach_greeting_shown 字段", flush=True)
+            cursor.execute("ALTER TABLE users ADD COLUMN coach_greeting_shown INTEGER DEFAULT 0")
+            print("[SQLite] 迁移完成", flush=True)
+        
+        # 数据库迁移：为已存在的 relationships 表添加 greeting_shown 字段
+        try:
+            cursor.execute("SELECT greeting_shown FROM relationships LIMIT 1")
+        except sqlite3.OperationalError:
+            # 字段不存在，需要添加
+            print("[SQLite] 迁移：为 relationships 表添加 greeting_shown 字段", flush=True)
+            cursor.execute("ALTER TABLE relationships ADD COLUMN greeting_shown INTEGER DEFAULT 0")
+            print("[SQLite] 迁移完成", flush=True)
+        
+        conn.commit()
+        
+        # 自动补充历史用户的开场白
+        _auto_migrate_greetings(cursor)
+        
         conn.commit()
         conn.close()
         print(f"[SQLite] 数据库初始化完成: {DB_PATH}", flush=True)
+
+
+def _auto_migrate_greetings(cursor):
+    """自动为历史用户补充开场白（在 init_db 中调用）"""
+    import random
+    
+    # 开场白配置
+    COACH_GREETINGS = [
+        "嗨，我在这里呢。无论发生了什么，你都可以跟我说。我会站在你这边，也会帮你看得更清楚一些。❤️",
+        "此刻的你，心里有什么感受想说说吗？不用担心说得好不好，我会认真听的。💭",
+        "来啦！就像跟老朋友聊天一样，有什么想说的尽管说～我既是你的树洞，也是你的镜子。🌟"
+    ]
+    
+    LOUNGE_GREETINGS = [
+        "欢迎来到你们的情感客厅。这里是专属于你们两个人的安全空间，我会在需要时出现，陪你们好好聊聊。💕",
+        "很高兴见到你们。在这里，你们可以坦诚地说出自己的感受。如果需要我帮忙梳理，随时@我就好。🤝",
+        "这里是属于你们的小天地。有我在，你们可以放心地说出心里话。需要帮忙时，@我一下就好～💫"
+    ]
+    
+    coach_added = 0
+    lounge_added = 0
+    
+    # 1. 补充个人教练开场白
+    cursor.execute("SELECT id, created_at FROM users ORDER BY created_at")
+    all_users = cursor.fetchall()
+    
+    for row in all_users:
+        user_id = row[0]
+        user_created_at = row[1]
+        
+        # 检查该用户是否已有教练消息
+        cursor.execute("SELECT COUNT(*) FROM coach_chats WHERE user_id = ?", (user_id,))
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            # 没有消息，创建开场白
+            greeting = random.choice(COACH_GREETINGS)
+            cursor.execute("""
+                INSERT INTO coach_chats (user_id, role, content, reasoning_content, created_at)
+                VALUES (?, 'assistant', ?, NULL, ?)
+            """, (user_id, greeting, user_created_at))
+            coach_added += 1
+        else:
+            # 有消息，检查第一条是否是开场白
+            cursor.execute("""
+                SELECT role FROM coach_chats 
+                WHERE user_id = ? 
+                ORDER BY created_at ASC 
+                LIMIT 1
+            """, (user_id,))
+            first_msg = cursor.fetchone()
+            
+            if first_msg and first_msg[0] == 'user':
+                # 第一条是用户消息，需要在前面插入开场白
+                greeting = random.choice(COACH_GREETINGS)
+                cursor.execute("""
+                    INSERT INTO coach_chats (user_id, role, content, reasoning_content, created_at)
+                    VALUES (?, 'assistant', ?, NULL, ?)
+                """, (user_id, greeting, user_created_at))
+                coach_added += 1
+    
+    # 2. 补充情感客厅开场白
+    cursor.execute("SELECT room_id, created_at FROM relationships ORDER BY created_at")
+    all_rooms = cursor.fetchall()
+    
+    for row in all_rooms:
+        room_id = row[0]
+        room_created_at = row[1]
+        
+        # 检查该房间是否已有消息
+        cursor.execute("SELECT COUNT(*) FROM lounge_chats WHERE room_id = ?", (room_id,))
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            # 没有消息，创建开场白
+            greeting = random.choice(LOUNGE_GREETINGS)
+            cursor.execute("""
+                INSERT INTO lounge_chats (room_id, user_id, role, content, reasoning_content, sent_to_ai, created_at)
+                VALUES (?, NULL, 'assistant', ?, NULL, 0, ?)
+            """, (room_id, greeting, room_created_at))
+            lounge_added += 1
+        else:
+            # 有消息，检查第一条是否是开场白
+            cursor.execute("""
+                SELECT role FROM lounge_chats 
+                WHERE room_id = ? 
+                ORDER BY created_at ASC 
+                LIMIT 1
+            """, (room_id,))
+            first_msg = cursor.fetchone()
+            
+            if first_msg and first_msg[0] == 'user':
+                # 第一条是用户消息，需要在前面插入开场白
+                greeting = random.choice(LOUNGE_GREETINGS)
+                cursor.execute("""
+                    INSERT INTO lounge_chats (room_id, user_id, role, content, reasoning_content, sent_to_ai, created_at)
+                    VALUES (?, NULL, 'assistant', ?, NULL, 0, ?)
+                """, (room_id, greeting, room_created_at))
+                lounge_added += 1
+    
+    if coach_added > 0 or lounge_added > 0:
+        print(f"[SQLite] 自动补充开场白：个人教练 {coach_added} 条，情感客厅 {lounge_added} 条", flush=True)
 
 
 # 启动时初始化数据库
@@ -123,7 +250,7 @@ init_db()
 class User:
     """用户模型"""
     
-    def __init__(self, phone, password, nickname=None, binding_code=None, partner_id=None, unbind_at=None, created_at=None, id=None):
+    def __init__(self, phone, password, nickname=None, binding_code=None, partner_id=None, unbind_at=None, coach_greeting_shown=False, created_at=None, id=None):
         self.id = id
         self.phone = phone
         self.password = password
@@ -131,6 +258,7 @@ class User:
         self.binding_code = binding_code
         self.partner_id = partner_id
         self.unbind_at = unbind_at
+        self.coach_greeting_shown = coach_greeting_shown
         self.created_at = created_at or datetime.now()
     
     def generate_binding_code(self):
@@ -146,6 +274,7 @@ class User:
             'binding_code': self.binding_code,
             'partner_id': self.partner_id,
             'has_partner': self.partner_id is not None,
+            'coach_greeting_shown': self.coach_greeting_shown,
             'unbind_at': self.unbind_at.isoformat() if isinstance(self.unbind_at, datetime) else self.unbind_at,
             'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at
         }
@@ -176,6 +305,12 @@ class User:
         except (KeyError, IndexError):
             nickname = None
         
+        # 兼容旧数据：如果没有 coach_greeting_shown 字段，设为 False
+        try:
+            coach_greeting_shown = bool(row['coach_greeting_shown'])
+        except (KeyError, IndexError):
+            coach_greeting_shown = False
+        
         return User(
             id=row['id'],
             phone=row['phone'],
@@ -184,6 +319,7 @@ class User:
             binding_code=row['binding_code'],
             partner_id=row['partner_id'],
             unbind_at=unbind_at,
+            coach_greeting_shown=coach_greeting_shown,
             created_at=created_at
         )
     
@@ -201,15 +337,15 @@ class User:
                     # 更新现有用户
                     cursor.execute('''
                         UPDATE users 
-                        SET phone=?, password=?, nickname=?, binding_code=?, partner_id=?, unbind_at=?
+                        SET phone=?, password=?, nickname=?, binding_code=?, partner_id=?, unbind_at=?, coach_greeting_shown=?
                         WHERE id=?
-                    ''', (self.phone, self.password, self.nickname, self.binding_code, self.partner_id, unbind_at_str, self.id))
+                    ''', (self.phone, self.password, self.nickname, self.binding_code, self.partner_id, unbind_at_str, int(self.coach_greeting_shown), self.id))
                 else:
                     # 创建新用户
                     cursor.execute('''
-                        INSERT INTO users (phone, password, nickname, binding_code, partner_id, unbind_at, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (self.phone, self.password, self.nickname, self.binding_code, self.partner_id, unbind_at_str, created_at_str))
+                        INSERT INTO users (phone, password, nickname, binding_code, partner_id, unbind_at, coach_greeting_shown, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (self.phone, self.password, self.nickname, self.binding_code, self.partner_id, unbind_at_str, int(self.coach_greeting_shown), created_at_str))
                     self.id = cursor.lastrowid
                 
                 conn.commit()
@@ -269,12 +405,13 @@ class User:
 class Relationship:
     """关系绑定模型"""
     
-    def __init__(self, user1_id, user2_id, room_id, is_active=True, created_at=None, id=None):
+    def __init__(self, user1_id, user2_id, room_id, is_active=True, greeting_shown=False, created_at=None, id=None):
         self.id = id
         self.user1_id = user1_id
         self.user2_id = user2_id
         self.room_id = room_id
         self.is_active = is_active
+        self.greeting_shown = greeting_shown
         self.created_at = created_at or datetime.now()
     
     def to_dict(self):
@@ -284,7 +421,8 @@ class Relationship:
             'user2_id': self.user2_id,
             'room_id': self.room_id,
             'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at,
-            'is_active': self.is_active
+            'is_active': self.is_active,
+            'greeting_shown': self.greeting_shown
         }
     
     @staticmethod
@@ -300,12 +438,19 @@ class Relationship:
             except ValueError:
                 created_at = None
         
+        # 兼容旧数据：如果没有 greeting_shown 字段，设为 False
+        try:
+            greeting_shown = bool(row['greeting_shown'])
+        except (KeyError, IndexError):
+            greeting_shown = False
+        
         return Relationship(
             id=row['id'],
             user1_id=row['user1_id'],
             user2_id=row['user2_id'],
             room_id=row['room_id'],
             is_active=bool(row['is_active']),
+            greeting_shown=greeting_shown,
             created_at=created_at
         )
     
@@ -322,15 +467,15 @@ class Relationship:
                     # 更新现有关系
                     cursor.execute('''
                         UPDATE relationships 
-                        SET user1_id=?, user2_id=?, room_id=?, is_active=?
+                        SET user1_id=?, user2_id=?, room_id=?, is_active=?, greeting_shown=?
                         WHERE id=?
-                    ''', (self.user1_id, self.user2_id, self.room_id, int(self.is_active), self.id))
+                    ''', (self.user1_id, self.user2_id, self.room_id, int(self.is_active), int(self.greeting_shown), self.id))
                 else:
                     # 创建新关系
                     cursor.execute('''
-                        INSERT INTO relationships (user1_id, user2_id, room_id, is_active, created_at)
-                        VALUES (?, ?, ?, ?, ?)
-                    ''', (self.user1_id, self.user2_id, self.room_id, int(self.is_active), created_at_str))
+                        INSERT INTO relationships (user1_id, user2_id, room_id, is_active, greeting_shown, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (self.user1_id, self.user2_id, self.room_id, int(self.is_active), int(self.greeting_shown), created_at_str))
                     self.id = cursor.lastrowid
                 
                 conn.commit()
