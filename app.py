@@ -257,17 +257,25 @@ def register():
     data = request.json
     phone = data.get('phone')
     password = data.get('password')
+    nickname = data.get('nickname', '').strip()  # 昵称非必填
 
     if not phone or not password:
         return jsonify({'success': False, 'message': '手机号和密码不能为空'}), 400
+    
+    # 验证昵称长度（如果提供）
+    if nickname and len(nickname) > 20:
+        return jsonify({'success': False, 'message': '昵称最长20个字符'}), 400
 
     # 检查用户是否已存在
     existing_users = User.filter(phone=phone)
     if existing_users:
         return jsonify({'success': False, 'message': '该手机号已注册'}), 400
 
-    # 创建新用户
-    user = User(phone=phone, password=password)
+    # 创建新用户（如果没有提供昵称，使用手机号后4位）
+    if not nickname:
+        nickname = phone[-4:] if len(phone) >= 4 else phone
+    
+    user = User(phone=phone, password=password, nickname=nickname)
     user.generate_binding_code()
     user.save()
 
@@ -340,8 +348,39 @@ def get_user_by_id(user_id):
         'success': True,
         'user': {
             'id': user.id,
-            'phone': user.phone  # 用于显示昵称
+            'phone': user.phone,
+            'nickname': user.nickname if user.nickname else (user.phone[-4:] if len(user.phone) >= 4 else user.phone)
         }
+    })
+
+
+@app.route('/api/user/update_nickname', methods=['POST'])
+def update_nickname():
+    """更新用户昵称"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': '未登录'}), 401
+
+    data = request.json
+    nickname = data.get('nickname', '').strip()
+
+    if not nickname:
+        return jsonify({'success': False, 'message': '昵称不能为空'}), 400
+
+    if len(nickname) > 20:
+        return jsonify({'success': False, 'message': '昵称最长20个字符'}), 400
+
+    user = User.get(user_id)
+    if not user:
+        return jsonify({'success': False, 'message': '用户不存在'}), 404
+
+    user.nickname = nickname
+    user.save()
+
+    return jsonify({
+        'success': True,
+        'message': '昵称更新成功',
+        'user': user.to_dict()
     })
 
 
@@ -906,7 +945,7 @@ def send_lounge_message():
 
 @app.route('/api/lounge/call_ai', methods=['POST'])
 def call_lounge_ai():
-    """召唤 AI 助手（短轮询版本）"""
+    """召唤 AI 助手（短轮询版本 - 非流式）"""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'success': False, 'message': '未登录'}), 401
@@ -915,55 +954,91 @@ def call_lounge_ai():
         data = request.json
         room_id = data.get('room_id')
 
-        # 【方案1】立即保存"思考中"占位消息，让两个用户都能看到
-        thinking_msg = LoungeChat(
+        # 获取房间的两个用户
+        all_relationships = Relationship.all()
+        relationships = [
+            r for r in all_relationships 
+            if r.room_id == room_id
+        ]
+        relationship = relationships[0] if relationships else None
+        
+        if not relationship:
+            return jsonify({'success': False, 'message': '未找到房间关系'}), 404
+        
+        user1 = User.get(relationship.user1_id)
+        user2 = User.get(relationship.user2_id)
+        
+        # 创建用户ID到昵称的映射（使用手机号后4位）
+        user_map = {
+            user1.id: user1.phone[-4:] if user1.phone else "用户1",
+            user2.id: user2.phone[-4:] if user2.phone else "用户2"
+        }
+
+        # 获取所有未传给AI的用户消息（按时间顺序）
+        all_history = LoungeChat.filter(room_id=room_id)
+        # 只取用户消息且未传给AI的
+        unsent_messages = [
+            msg for msg in all_history 
+            if msg.role == "user" and not msg.sent_to_ai
+        ]
+        unsent_messages.sort(key=lambda x: x.created_at)
+        
+        # 限制最近10条
+        messages_to_send = unsent_messages[-10:] if len(unsent_messages) > 10 else unsent_messages
+
+        if not messages_to_send:
+            ai_reply = "暂时没有新的对话内容可供分析哦～"
+            reasoning_content = None
+        else:
+            # 构建消息内容：昵称：消息内容
+            formatted_messages = []
+            for msg in messages_to_send:
+                nickname = user_map.get(msg.user_id, "未知用户")
+                formatted_messages.append(f"{nickname}：{msg.content}")
+            
+            conversation_text = "\n".join(formatted_messages)
+            
+            # 调用 Coze API 并提取思考过程
+            print(f"[Lounge AI] 开始调用 Coze API，消息数量: {len(messages_to_send)}", flush=True)
+            print(f"[Lounge AI] 传入内容:\n{conversation_text}", flush=True)
+            
+            # 调用流式API并提取思考过程和正文
+            ai_reply, reasoning_content = call_coze_api_with_reasoning(
+                user_phone=room_id,
+                message=conversation_text,
+                bot_id=COZE_BOT_ID_LOUNGE
+            )
+            
+            print(f"[Lounge AI] Coze API 返回，回复长度: {len(ai_reply)}, 思考长度: {len(reasoning_content) if reasoning_content else 0}", flush=True)
+            
+            # 标记这些消息已传给AI
+            for msg in messages_to_send:
+                msg.sent_to_ai = True
+                msg.save()
+            print(f"[Lounge AI] 已标记 {len(messages_to_send)} 条消息为已传给AI", flush=True)
+
+        # 保存AI回复消息（新建，不是更新）
+        ai_msg = LoungeChat(
             room_id=room_id, 
             user_id=None, 
             role='assistant', 
-            content='🎯 情感教练正在分析...'
+            content=ai_reply,
+            reasoning_content=reasoning_content
         )
-        thinking_msg.save()
-        print(f"[Lounge AI] 已保存思考中占位消息，ID: {thinking_msg.id}", flush=True)
-
-        # 获取最近的对话记录（最近10条）
-        all_history = LoungeChat.filter(room_id=room_id)
-        all_history.sort(key=lambda x: x.created_at, reverse=True)
-        history = all_history[:10]
-
-        # 构建对话历史（排除刚才的占位消息）
-        latest_message = ""
-        for msg in reversed(history):
-            if msg.role == "user":
-                latest_message += f"{msg.content}\n"
-
-        if not latest_message.strip():
-            ai_reply = "暂时没有对话内容可供分析哦～"
-        else:
-            # 调用 AI（使用非流式版本）
-            print(f"[Lounge AI] 开始调用 Coze API，消息长度: {len(latest_message)}", flush=True)
-            ai_reply = call_coze_api(
-                user_phone=room_id,
-                message="请基于以上对话内容，作为情感调解专家，提供建设性的沟通建议，帮助双方理解彼此：\n" + latest_message,
-                bot_id=COZE_BOT_ID_LOUNGE,
-                conversation_history=None
-            )
-            print(f"[Lounge AI] Coze API 返回，回复长度: {len(ai_reply)}", flush=True)
-
-        # 【方案1】更新同一条消息为真实回复（而不是新建）
-        thinking_msg.content = ai_reply
-        thinking_msg.save()
-        print(f"[Lounge AI] 已更新消息为真实回复，ID: {thinking_msg.id}", flush=True)
+        ai_msg.save()
+        print(f"[Lounge AI] 已保存AI回复消息，ID: {ai_msg.id}", flush=True)
 
         # 手动构建返回数据
         response_data = {
             'success': True,
             'message': {
-                'id': thinking_msg.id,
-                'room_id': thinking_msg.room_id,
-                'user_id': thinking_msg.user_id,
-                'role': thinking_msg.role,
-                'content': thinking_msg.content,
-                'created_at': thinking_msg.created_at.isoformat() if hasattr(thinking_msg.created_at, 'isoformat') else str(thinking_msg.created_at)
+                'id': ai_msg.id,
+                'room_id': ai_msg.room_id,
+                'user_id': ai_msg.user_id,
+                'role': ai_msg.role,
+                'content': ai_msg.content,
+                'reasoning_content': ai_msg.reasoning_content,
+                'created_at': ai_msg.created_at.isoformat() if hasattr(ai_msg.created_at, 'isoformat') else str(ai_msg.created_at)
             }
         }
         
@@ -977,6 +1052,283 @@ def call_lounge_ai():
             'success': False,
             'message': f'AI 调用失败: {str(e)}'
         }), 500
+
+
+@app.route('/api/lounge/call_ai/stream', methods=['POST'])
+def call_lounge_ai_stream():
+    """召唤 AI 助手（流式版本）"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': '未登录'}), 401
+
+    data = request.json
+    room_id = data.get('room_id')
+
+    def generate():
+        """流式生成器"""
+        try:
+            # 获取房间的两个用户
+            all_relationships = Relationship.all()
+            relationships = [
+                r for r in all_relationships 
+                if r.room_id == room_id
+            ]
+            relationship = relationships[0] if relationships else None
+            
+            if not relationship:
+                yield f"data: {json.dumps({'type': 'error', 'content': '未找到房间关系'}, ensure_ascii=False)}\n\n"
+                return
+            
+            user1 = User.get(relationship.user1_id)
+            user2 = User.get(relationship.user2_id)
+            
+            # 创建用户ID到昵称的映射（使用手机号后4位）
+            user_map = {
+                user1.id: user1.phone[-4:] if user1.phone else "用户1",
+                user2.id: user2.phone[-4:] if user2.phone else "用户2"
+            }
+
+            # 获取所有未传给AI的用户消息
+            all_history = LoungeChat.filter(room_id=room_id)
+            unsent_messages = [
+                msg for msg in all_history 
+                if msg.role == "user" and not msg.sent_to_ai
+            ]
+            unsent_messages.sort(key=lambda x: x.created_at)
+            
+            messages_to_send = unsent_messages[-10:] if len(unsent_messages) > 10 else unsent_messages
+
+            if not messages_to_send:
+                yield f"data: {json.dumps({'type': 'content', 'content': '暂时没有新的对话内容可供分析哦～'}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'final_content': '暂时没有新的对话内容可供分析哦～', 'reasoning_content': None}, ensure_ascii=False)}\n\n"
+                return
+
+            # 构建消息内容
+            formatted_messages = []
+            for msg in messages_to_send:
+                nickname = user_map.get(msg.user_id, "未知用户")
+                formatted_messages.append(f"{nickname}：{msg.content}")
+            
+            conversation_text = "\n".join(formatted_messages)
+            
+            print(f"[Lounge AI Stream] 开始调用 Coze API", flush=True)
+
+            # 调用 Coze API（流式）
+            headers = {
+                'Authorization': f'Bearer {COZE_API_KEY}',
+                'Content-Type': 'application/json'
+            }
+
+            payload = {
+                "bot_id": COZE_BOT_ID_LOUNGE,
+                "user_id": room_id,
+                "stream": True,
+                "auto_save_history": True,
+                "additional_messages": [{
+                    "role": "user",
+                    "content": conversation_text,
+                    "content_type": "text",
+                    "type": "question"
+                }]
+            }
+
+            response = requests.post(COZE_API_URL, headers=headers, json=payload, timeout=60, stream=True)
+            response.raise_for_status()
+
+            current_event = None
+            final_content = ""
+            reasoning_content = ""
+            
+            for line in response.iter_lines():
+                if line:
+                    try:
+                        line_text = line.decode('utf-8')
+
+                        if line_text.startswith('event:'):
+                            current_event = line_text[6:].strip()
+                            continue
+
+                        if line_text.startswith('data:'):
+                            json_str = line_text[5:].strip()
+                            if json_str == '[DONE]' or json_str == '"[DONE]"':
+                                break
+                            
+                            if not json_str:
+                                continue
+
+                            try:
+                                coze_data = json.loads(json_str)
+                            except json.JSONDecodeError:
+                                continue
+                            
+                            if not isinstance(coze_data, dict):
+                                continue
+                            
+                            # 跳过元数据消息
+                            if coze_data.get('msg_type'):
+                                continue
+
+                            # 处理流式增量事件
+                            if current_event == 'conversation.message.delta':
+                                role = coze_data.get('role')
+                                msg_type_field = coze_data.get('type')
+                                
+                                if role == 'assistant' and msg_type_field == 'answer':
+                                    # 思考过程
+                                    reasoning = coze_data.get('reasoning_content', '')
+                                    if reasoning:
+                                        reasoning_content += reasoning
+                                        yield f"data: {json.dumps({'type': 'reasoning', 'content': reasoning}, ensure_ascii=False)}\n\n"
+                                    
+                                    # 正文内容
+                                    content = coze_data.get('content', '')
+                                    if content:
+                                        final_content += content
+                                        yield f"data: {json.dumps({'type': 'content', 'content': content}, ensure_ascii=False)}\n\n"
+
+                            # 处理完成事件
+                            elif current_event == 'conversation.message.completed':
+                                role = coze_data.get('role')
+                                msg_type_field = coze_data.get('type')
+                                
+                                if role == 'assistant' and msg_type_field == 'answer':
+                                    # 思考完成信号
+                                    yield f"data: {json.dumps({'type': 'reasoning_done'}, ensure_ascii=False)}\n\n"
+
+                    except Exception as e:
+                        print(f"[Lounge Stream Error] {e}", flush=True)
+                        continue
+
+            # 标记消息已传给AI
+            for msg in messages_to_send:
+                msg.sent_to_ai = True
+                msg.save()
+
+            # 保存AI回复
+            if final_content:
+                ai_msg = LoungeChat(
+                    room_id=room_id,
+                    user_id=None,
+                    role='assistant',
+                    content=final_content,
+                    reasoning_content=reasoning_content if reasoning_content else None
+                )
+                ai_msg.save()
+                print(f"[Lounge AI Stream] 已保存AI回复，ID: {ai_msg.id}", flush=True)
+
+            # 发送完成信号
+            yield f"data: {json.dumps({'type': 'done', 'final_content': final_content, 'reasoning_content': reasoning_content}, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            print(f"[Lounge Stream API Error] {e}", flush=True)
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)}, ensure_ascii=False)}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'
+        }
+    )
+
+
+def call_coze_api_with_reasoning(user_phone, message, bot_id):
+    """
+    调用 Coze API 并提取思考过程和正文
+    :return: (content, reasoning_content) 元组
+    """
+    if not COZE_API_KEY or not bot_id:
+        return "AI 服务未配置", None
+
+    try:
+        import json
+        headers = {
+            'Authorization': f'Bearer {COZE_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+
+        payload = {
+            "bot_id": bot_id,
+            "user_id": user_phone,
+            "stream": True,
+            "auto_save_history": True,
+            "additional_messages": [{
+                "role": "user",
+                "content": message,
+                "content_type": "text",
+                "type": "question"
+            }]
+        }
+
+        print(f"[Coze API] 发送请求（带思考过程提取）", flush=True)
+        response = requests.post(COZE_API_URL, headers=headers, json=payload, timeout=60, stream=True)
+        response.raise_for_status()
+
+        completed_content = None
+        reasoning_content = None
+        current_event = None
+        
+        for line in response.iter_lines():
+            if line:
+                try:
+                    line_text = line.decode('utf-8')
+
+                    if line_text.startswith('event:'):
+                        current_event = line_text[6:].strip()
+                        continue
+
+                    if line_text.startswith('data:'):
+                        json_str = line_text[5:].strip()
+                        if json_str == '[DONE]' or json_str == '"[DONE]"':
+                            break
+                        
+                        if not json_str:
+                            continue
+
+                        try:
+                            data = json.loads(json_str)
+                        except json.JSONDecodeError:
+                            continue
+                        
+                        if not isinstance(data, dict):
+                            continue
+                        
+                        # 跳过元数据消息
+                        if data.get('msg_type'):
+                            continue
+
+                        # 处理完成事件
+                        if current_event == 'conversation.message.completed':
+                            role = data.get('role')
+                            msg_type_field = data.get('type')
+                            content = data.get('content', '')
+                            reasoning = data.get('reasoning_content', '')
+                            
+                            # 跳过 verbose 类型
+                            if msg_type_field == 'verbose':
+                                continue
+                            
+                            if role == 'assistant' and isinstance(content, str) and content:
+                                if msg_type_field == 'answer':
+                                    completed_content = content
+                                    if reasoning:
+                                        reasoning_content = reasoning
+                                    print(f"[Coze API] 收到 answer 回复，正文长度: {len(content)}, 思考长度: {len(reasoning) if reasoning else 0}", flush=True)
+
+                except Exception as e:
+                    print(f"[Coze API] 处理流式数据异常: {type(e).__name__}: {e}", flush=True)
+                    continue
+
+        if completed_content:
+            return completed_content, reasoning_content
+        else:
+            return "AI 未返回有效回复", None
+
+    except Exception as e:
+        print(f"[Coze API] 请求错误: {str(e)}", flush=True)
+        return f"AI 调用失败: {str(e)}", None
 
 
 # ==================== 前端路由 ====================
@@ -1007,18 +1359,6 @@ def coach():
 def lounge():
     """情感客厅（短轮询版本）"""
     return render_template('lounge_polling.html')
-
-
-@app.route('/lounge/websocket')
-def lounge_websocket():
-    """情感客厅（WebSocket 版本 - 备用）"""
-    return render_template('lounge.html')
-
-
-@app.route('/lounge/debug')
-def lounge_debug():
-    """情感客厅调试页面"""
-    return render_template('lounge_debug.html')
 
 
 if __name__ == '__main__':

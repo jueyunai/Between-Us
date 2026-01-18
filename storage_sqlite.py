@@ -38,6 +38,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 phone TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
+                nickname TEXT,
                 binding_code TEXT,
                 partner_id INTEGER,
                 unbind_at TEXT,
@@ -77,9 +78,38 @@ def init_db():
                 user_id INTEGER,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
+                reasoning_content TEXT,
+                sent_to_ai INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL
             )
         ''')
+        
+        # 数据库迁移：为已存在的 lounge_chats 表添加 sent_to_ai 字段
+        try:
+            cursor.execute("SELECT sent_to_ai FROM lounge_chats LIMIT 1")
+        except sqlite3.OperationalError:
+            # 字段不存在，需要添加
+            print("[SQLite] 迁移：为 lounge_chats 表添加 sent_to_ai 字段", flush=True)
+            cursor.execute("ALTER TABLE lounge_chats ADD COLUMN sent_to_ai INTEGER DEFAULT 0")
+            print("[SQLite] 迁移完成", flush=True)
+        
+        # 数据库迁移：为已存在的 lounge_chats 表添加 reasoning_content 字段
+        try:
+            cursor.execute("SELECT reasoning_content FROM lounge_chats LIMIT 1")
+        except sqlite3.OperationalError:
+            # 字段不存在，需要添加
+            print("[SQLite] 迁移：为 lounge_chats 表添加 reasoning_content 字段", flush=True)
+            cursor.execute("ALTER TABLE lounge_chats ADD COLUMN reasoning_content TEXT")
+            print("[SQLite] 迁移完成", flush=True)
+        
+        # 数据库迁移：为已存在的 users 表添加 nickname 字段
+        try:
+            cursor.execute("SELECT nickname FROM users LIMIT 1")
+        except sqlite3.OperationalError:
+            # 字段不存在，需要添加
+            print("[SQLite] 迁移：为 users 表添加 nickname 字段", flush=True)
+            cursor.execute("ALTER TABLE users ADD COLUMN nickname TEXT")
+            print("[SQLite] 迁移完成", flush=True)
         
         conn.commit()
         conn.close()
@@ -93,10 +123,11 @@ init_db()
 class User:
     """用户模型"""
     
-    def __init__(self, phone, password, binding_code=None, partner_id=None, unbind_at=None, created_at=None, id=None):
+    def __init__(self, phone, password, nickname=None, binding_code=None, partner_id=None, unbind_at=None, created_at=None, id=None):
         self.id = id
         self.phone = phone
         self.password = password
+        self.nickname = nickname
         self.binding_code = binding_code
         self.partner_id = partner_id
         self.unbind_at = unbind_at
@@ -111,6 +142,7 @@ class User:
         return {
             'id': self.id,
             'phone': self.phone,
+            'nickname': self.nickname,
             'binding_code': self.binding_code,
             'partner_id': self.partner_id,
             'has_partner': self.partner_id is not None,
@@ -138,10 +170,17 @@ class User:
             except ValueError:
                 unbind_at = None
         
+        # 兼容旧数据：如果没有 nickname 字段，设为 None
+        try:
+            nickname = row['nickname']
+        except (KeyError, IndexError):
+            nickname = None
+        
         return User(
             id=row['id'],
             phone=row['phone'],
             password=row['password'],
+            nickname=nickname,
             binding_code=row['binding_code'],
             partner_id=row['partner_id'],
             unbind_at=unbind_at,
@@ -162,15 +201,15 @@ class User:
                     # 更新现有用户
                     cursor.execute('''
                         UPDATE users 
-                        SET phone=?, password=?, binding_code=?, partner_id=?, unbind_at=?
+                        SET phone=?, password=?, nickname=?, binding_code=?, partner_id=?, unbind_at=?
                         WHERE id=?
-                    ''', (self.phone, self.password, self.binding_code, self.partner_id, unbind_at_str, self.id))
+                    ''', (self.phone, self.password, self.nickname, self.binding_code, self.partner_id, unbind_at_str, self.id))
                 else:
                     # 创建新用户
                     cursor.execute('''
-                        INSERT INTO users (phone, password, binding_code, partner_id, unbind_at, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (self.phone, self.password, self.binding_code, self.partner_id, unbind_at_str, created_at_str))
+                        INSERT INTO users (phone, password, nickname, binding_code, partner_id, unbind_at, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (self.phone, self.password, self.nickname, self.binding_code, self.partner_id, unbind_at_str, created_at_str))
                     self.id = cursor.lastrowid
                 
                 conn.commit()
@@ -488,12 +527,14 @@ class CoachChat:
 class LoungeChat:
     """情感客厅聊天记录模型"""
     
-    def __init__(self, room_id, content, role, user_id=None, created_at=None, id=None):
+    def __init__(self, room_id, content, role, user_id=None, reasoning_content=None, sent_to_ai=False, created_at=None, id=None):
         self.id = id
         self.room_id = room_id
         self.user_id = user_id
         self.role = role
         self.content = content
+        self.reasoning_content = reasoning_content
+        self.sent_to_ai = sent_to_ai
         self.created_at = created_at or datetime.now()
     
     def to_dict(self):
@@ -503,6 +544,8 @@ class LoungeChat:
             'user_id': self.user_id,
             'role': self.role,
             'content': self.content,
+            'reasoning_content': self.reasoning_content,
+            'sent_to_ai': self.sent_to_ai,
             'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at
         }
     
@@ -519,12 +562,20 @@ class LoungeChat:
             except ValueError:
                 created_at = None
         
+        # 兼容旧数据：如果没有 reasoning_content 字段，设为 None
+        try:
+            reasoning_content = row['reasoning_content']
+        except (KeyError, IndexError):
+            reasoning_content = None
+        
         return LoungeChat(
             id=row['id'],
             room_id=row['room_id'],
             user_id=row['user_id'],
             role=row['role'],
             content=row['content'],
+            reasoning_content=reasoning_content,
+            sent_to_ai=bool(row['sent_to_ai']),
             created_at=created_at
         )
     
@@ -541,15 +592,15 @@ class LoungeChat:
                     # 更新现有记录
                     cursor.execute('''
                         UPDATE lounge_chats 
-                        SET room_id=?, user_id=?, role=?, content=?
+                        SET room_id=?, user_id=?, role=?, content=?, reasoning_content=?, sent_to_ai=?
                         WHERE id=?
-                    ''', (self.room_id, self.user_id, self.role, self.content, self.id))
+                    ''', (self.room_id, self.user_id, self.role, self.content, self.reasoning_content, int(self.sent_to_ai), self.id))
                 else:
                     # 创建新记录
                     cursor.execute('''
-                        INSERT INTO lounge_chats (room_id, user_id, role, content, created_at)
-                        VALUES (?, ?, ?, ?, ?)
-                    ''', (self.room_id, self.user_id, self.role, self.content, created_at_str))
+                        INSERT INTO lounge_chats (room_id, user_id, role, content, reasoning_content, sent_to_ai, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (self.room_id, self.user_id, self.role, self.content, self.reasoning_content, int(self.sent_to_ai), created_at_str))
                     self.id = cursor.lastrowid
                 
                 conn.commit()
