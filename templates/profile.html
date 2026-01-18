@@ -60,6 +60,7 @@
 
             <div class="user-info" id="userInfo">
                 <p><strong>手机号：</strong><span id="userPhone">--</span></p>
+                <p><strong>昵称：</strong><span id="userNickname">--</span></p>
                 <p><strong>绑定状态：</strong><span id="bindingStatus">未绑定</span></p>
                 <p id="bindingCodeDisplay" class="binding-code" style="display: none;">
                     <strong>我的绑定码：</strong>
@@ -69,6 +70,7 @@
             </div>
 
             <div class="user-actions">
+                <button class="btn btn-secondary" onclick="showEditNicknameModal()">修改昵称</button>
                 <button class="btn btn-secondary" onclick="showBindModal()" id="bindBtn">绑定伴侣</button>
                 <button class="btn btn-secondary" onclick="showUnbindModal()" id="unbindBtn" style="display: none;">解绑伴侣</button>
                 <button class="btn btn-secondary" onclick="logout()">退出登录</button>
@@ -92,6 +94,23 @@
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="bindPartner()">确认绑定</button>
                 <button class="btn btn-secondary" onclick="closeBindModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改昵称模态框 -->
+    <div id="editNicknameModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2 class="modal-title">修改昵称</h2>
+            <p class="modal-subtitle">设置一个你喜欢的昵称吧</p>
+            <div class="input-group">
+                <label>新昵称</label>
+                <input type="text" id="newNickname" placeholder="请输入新昵称" maxlength="20">
+                <small style="color: var(--home-muted); font-size: 12px; margin-top: 4px; display: block;">最长20个字符</small>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="updateNickname()">确认修改</button>
+                <button class="btn btn-secondary" onclick="closeEditNicknameModal()">取消</button>
             </div>
         </div>
     </div>
@@ -173,6 +192,10 @@
                 if (data.success) {
                     userData = data.user;
                     document.getElementById('userPhone').textContent = userData.phone;
+                    
+                    // 显示昵称（如果没有昵称，显示手机号后4位）
+                    const displayNickname = userData.nickname || (userData.phone.length >= 4 ? userData.phone.slice(-4) : userData.phone);
+                    document.getElementById('userNickname').textContent = displayNickname;
 
                     if (userData.has_partner) {
                         document.getElementById('bindBtn').style.display = 'none';
@@ -223,6 +246,50 @@
 
         function closeBindModal() {
             document.getElementById('bindModal').style.display = 'none';
+        }
+
+        function showEditNicknameModal() {
+            const currentNickname = userData?.nickname || '';
+            document.getElementById('newNickname').value = currentNickname;
+            document.getElementById('editNicknameModal').style.display = 'flex';
+        }
+
+        function closeEditNicknameModal() {
+            document.getElementById('editNicknameModal').style.display = 'none';
+        }
+
+        async function updateNickname() {
+            const nickname = document.getElementById('newNickname').value.trim();
+            
+            if (!nickname) {
+                showToast('昵称不能为空', 'error');
+                return;
+            }
+
+            if (nickname.length > 20) {
+                showToast('昵称最长20个字符', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/update_nickname', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    closeEditNicknameModal();
+                    showToast('昵称修改成功！', 'success');
+                    loadUserInfo();
+                } else {
+                    showToast(data.message || '修改失败', 'error');
+                }
+            } catch (error) {
+                showToast('网络错误', 'error');
+                console.error(error);
+            }
         }
 
         function showUnbindModal() {
