@@ -527,11 +527,15 @@
                 const data = await response.json();
                 
                 if (data.success && data.messages && data.messages.length > 0) {
-                    // 有新消息
+                    // 有新消息，添加前检查是否已存在（防止重复）
                     data.messages.forEach(msg => {
-                        messages.push(msg);
-                        if (msg.id > lastMessageId) {
-                            lastMessageId = msg.id;
+                        // 检查消息是否已存在
+                        const exists = messages.find(m => m.id === msg.id);
+                        if (!exists) {
+                            messages.push(msg);
+                            if (msg.id > lastMessageId) {
+                                lastMessageId = msg.id;
+                            }
                         }
                     });
                     renderMessages();
@@ -546,30 +550,36 @@
             container.innerHTML = '';
 
             messages.forEach((msg) => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.role}`;
-                messageDiv.dataset.msgId = msg.id;  // 添加数据属性，用于流式更新
-
+                // 先判断消息类型，确定正确的 CSS class
+                let messageClass = 'message';
                 let senderName = '';
                 let senderType = '';
                 let avatarText = '';
 
                 if (msg.role === 'assistant') {
+                    messageClass += ' assistant';
                     senderName = '情感教练';
                     senderType = 'coach';
                     avatarText = '✨';
-                    // 如果是 AI 正在思考的消息
-                    if (msg.isStreaming) {
-                        messageDiv.classList.add('ai-thinking');
-                    }
                 } else if (msg.user_id === userId) {
+                    messageClass += ' user';
                     senderName = userNickname;
                     senderType = 'self';
                     avatarText = '我';
                 } else {
+                    messageClass += ' partner';
                     senderName = partnerNickname;
                     senderType = 'partner';
                     avatarText = 'Ta';
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = messageClass;
+                messageDiv.dataset.msgId = msg.id;  // 添加数据属性，用于流式更新
+
+                // 如果是 AI 正在思考的消息
+                if (msg.role === 'assistant' && msg.isStreaming) {
+                    messageDiv.classList.add('ai-thinking');
                 }
 
                 const avatarDiv = document.createElement('div');
@@ -657,14 +667,18 @@
             // AI 消息，支持简单的 Markdown 格式
             let formatted = escapeHtml(content);
             
-            // 标题（**标题：** 或 **1. 标题：**）
-            formatted = formatted.replace(/\*\*([^*]+)：\*\*/g, '<strong style="color: #9d7a5a;">$1：</strong>');
+            // 1. 先处理加粗文本（**文本**），使用非贪婪匹配，支持跨行
+            formatted = formatted.replace(/\*\*(.+?)\*\*/gs, function(match, text) {
+                // 如果包含冒号，使用特殊颜色
+                if (text.includes('：') || text.includes(':')) {
+                    return '<strong style="color: #9d7a5a;">' + text + '</strong>';
+                }
+                return '<strong>' + text + '</strong>';
+            });
             
-            // 加粗文本（**文本**）
-            formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-            
-            // 斜体（*文本*）
-            formatted = formatted.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            // 2. 处理单星号斜体（*文本*），但要避免匹配到emoji后的星号
+            // 使用负向前瞻和后顾，确保星号前后是空格或标点
+            formatted = formatted.replace(/(?<!\*)(?<!\S)\*([^\s*][^*]*?)\*(?!\*)(?!\S)/g, '<em>$1</em>');
             
             return formatted;
         }

@@ -945,7 +945,12 @@ def send_lounge_message():
 
 @app.route('/api/lounge/call_ai', methods=['POST'])
 def call_lounge_ai():
-    """召唤 AI 助手（短轮询版本 - 非流式）"""
+    """
+    召唤 AI 助手（短轮询版本 - 非流式）
+    
+    ⚠️ 已弃用：前端已改用流式版本 /api/lounge/call_ai/stream
+    保留此接口仅为兼容性考虑，新功能请在流式版本中实现
+    """
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'success': False, 'message': '未登录'}), 401
@@ -968,10 +973,10 @@ def call_lounge_ai():
         user1 = User.get(relationship.user1_id)
         user2 = User.get(relationship.user2_id)
         
-        # 创建用户ID到昵称的映射（使用手机号后4位）
+        # 创建用户ID到昵称的映射（优先使用昵称，没有昵称则用手机号后4位）
         user_map = {
-            user1.id: user1.phone[-4:] if user1.phone else "用户1",
-            user2.id: user2.phone[-4:] if user2.phone else "用户2"
+            user1.id: user1.nickname or (user1.phone[-4:] if user1.phone else "用户1"),
+            user2.id: user2.nickname or (user2.phone[-4:] if user2.phone else "用户2")
         }
 
         # 获取所有未传给AI的用户消息（按时间顺序）
@@ -1082,10 +1087,10 @@ def call_lounge_ai_stream():
             user1 = User.get(relationship.user1_id)
             user2 = User.get(relationship.user2_id)
             
-            # 创建用户ID到昵称的映射（使用手机号后4位）
+            # 创建用户ID到昵称的映射（优先使用昵称，没有昵称则用手机号后4位）
             user_map = {
-                user1.id: user1.phone[-4:] if user1.phone else "用户1",
-                user2.id: user2.phone[-4:] if user2.phone else "用户2"
+                user1.id: user1.nickname or (user1.phone[-4:] if user1.phone else "用户1"),
+                user2.id: user2.nickname or (user2.phone[-4:] if user2.phone else "用户2")
             }
 
             # 获取所有未传给AI的用户消息

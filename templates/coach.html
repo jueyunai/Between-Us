@@ -845,14 +845,18 @@
             // AI 消息，支持简单的 Markdown 格式
             let formatted = escapeHtml(content);
             
-            // 标题（**标题：** 或 **1. 标题：**）
-            formatted = formatted.replace(/\*\*([^*]+)：\*\*/g, '<strong style="color: #9d7a5a;">$1：</strong>');
+            // 1. 先处理加粗文本（**文本**），使用非贪婪匹配，支持跨行
+            formatted = formatted.replace(/\*\*(.+?)\*\*/gs, function(match, text) {
+                // 如果包含冒号，使用特殊颜色
+                if (text.includes('：') || text.includes(':')) {
+                    return '<strong style="color: #9d7a5a;">' + text + '</strong>';
+                }
+                return '<strong>' + text + '</strong>';
+            });
             
-            // 加粗文本（**文本**）
-            formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-            
-            // 斜体（*文本*）
-            formatted = formatted.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            // 2. 处理单星号斜体（*文本*），但要避免匹配到emoji后的星号
+            // 使用负向前瞻和后顾，确保星号前后是空格或标点
+            formatted = formatted.replace(/(?<!\*)(?<!\S)\*([^\s*][^*]*?)\*(?!\*)(?!\S)/g, '<em>$1</em>');
             
             return formatted;
         }
