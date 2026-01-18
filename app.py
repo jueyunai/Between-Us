@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, render_template, session, Response, stream_with_context
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit, join_room, leave_room
 from storage_sqlite import User, Relationship, CoachChat, LoungeChat
 from datetime import datetime, timedelta
 import secrets
@@ -17,12 +16,9 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(32)
-
 app.config['JSON_AS_ASCII'] = False  # 支持中文 JSON 响应
 
-
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Coze API 配置
 COZE_API_URL = "https://api.coze.cn/v3/chat"
@@ -239,15 +235,6 @@ def call_coze_api(user_phone, message, bot_id, conversation_history=None):
         print(f"[Coze API] 清理后内容长度: {len(final_content) if final_content else 0}", flush=True)
         print(f"[Coze API] 最终回复: {final_content[:200] if final_content else 'None'}...", flush=True)
         print(f"{'='*60}\n", flush=True)
-
-        # 保存调试信息
-        debug_info = {
-            "completed_content": completed_content,
-            "final_content": final_content,
-            "content_length": len(final_content) if final_content else 0
-        }
-        with open('coze_debug.json', 'w', encoding='utf-8') as f:
-            json.dump(debug_info, f, ensure_ascii=False, indent=2)
 
         if final_content:
             return final_content
@@ -862,183 +849,134 @@ def get_lounge_history():
     })
 
 
-# ==================== WebSocket 实时通信 ====================
-@socketio.on('join_lounge')
-def handle_join_lounge(data):
-    """加入情感客厅房间"""
+@app.route('/api/lounge/messages/new', methods=['GET'])
+def get_new_lounge_messages():
+    """获取新消息（短轮询）"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': '未登录'}), 401
+
+    since_id = request.args.get('since_id', 0, type=int)
+    
+    user = User.get(user_id)
+    all_relationships = Relationship.all()
+    relationships = [
+        r for r in all_relationships 
+        if r.user1_id == user.id or r.user2_id == user.id
+    ]
+    relationship = relationships[0] if relationships else None
+
+    if not relationship:
+        return jsonify({'success': False, 'message': '未找到房间'}), 404
+
+    # 获取所有消息，筛选出 ID 大于 since_id 的
+    all_messages = LoungeChat.filter(room_id=relationship.room_id)
+    new_messages = [msg for msg in all_messages if msg.id > since_id]
+    new_messages.sort(key=lambda x: x.created_at)
+
+    return jsonify({
+        'success': True,
+        'messages': [msg.to_dict() for msg in new_messages]
+    })
+
+
+@app.route('/api/lounge/send', methods=['POST'])
+def send_lounge_message():
+    """发送消息到情感客厅（短轮询版本）"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': '未登录'}), 401
+
+    data = request.json
     room_id = data.get('room_id')
-    user_id = data.get('user_id')
-
-    join_room(room_id)
-    emit('user_joined', {'user_id': user_id}, room=room_id)
-
-
-@socketio.on('send_message')
-def handle_send_message(data):
-    """发送消息到情感客厅"""
-    room_id = data.get('room_id')
-    user_id = data.get('user_id')
     content = data.get('content')
 
-    # 异步保存消息（不阻塞）
+    if not content:
+        return jsonify({'success': False, 'message': '消息不能为空'}), 400
+
+    # 保存消息
     msg = LoungeChat(room_id=room_id, user_id=user_id, role='user', content=content)
-    save_message_async(msg)
+    msg.save()
 
-    # 广播消息，并告知前端是否需要触发 AI
-    is_calling_ai = '@AI' in content or '@ai' in content or '@教练' in content
-    emit('new_message', {**msg.to_dict(), 'trigger_ai': is_calling_ai}, room=room_id)
+    return jsonify({
+        'success': True,
+        'message': msg.to_dict()
+    })
 
 
-@socketio.on('call_ai')
-def handle_call_ai(data):
-    """召唤 AI 助手（流式输出）"""
-    room_id = data.get('room_id')
-
-    # 先向房间广播"开始分析"事件，让所有用户都看到提示
-    emit('ai_thinking_start', {}, room=room_id)
-
-    # 获取最近的对话记录（最近10条）
-    all_history = LoungeChat.filter(room_id=room_id)
-    all_history.sort(key=lambda x: x.created_at, reverse=True)
-    history = all_history[:10]
-
-    # 构建对话历史（排除 AI 的回复，只保留用户对话）
-    latest_message = ""
-    for msg in reversed(history):
-        if msg.role == "user":
-            latest_message += f"{msg.content}\n"
-
-    # 如果没有对话记录，返回提示
-    if not latest_message.strip():
-        ai_reply = "暂时没有对话内容可供分析哦～"
-        ai_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content=ai_reply)
-        ai_msg.save()
-        emit('ai_stream', {'type': 'delta', 'content': ai_reply}, room=room_id)
-        emit('ai_stream', {'type': 'done'}, room=room_id)
-        return
-
-    # 使用流式 API 调用
-    if not COZE_API_KEY or not COZE_BOT_ID_LOUNGE:
-        ai_reply = "AI 服务未配置"
-        ai_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content=ai_reply)
-        ai_msg.save()
-        emit('ai_stream', {'type': 'delta', 'content': ai_reply}, room=room_id)
-        emit('ai_stream', {'type': 'done'}, room=room_id)
-        return
+@app.route('/api/lounge/call_ai', methods=['POST'])
+def call_lounge_ai():
+    """召唤 AI 助手（短轮询版本）"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': '未登录'}), 401
 
     try:
-        headers = {
-            'Authorization': f'Bearer {COZE_API_KEY}',
-            'Content-Type': 'application/json'
-        }
+        data = request.json
+        room_id = data.get('room_id')
 
-        messages = [{
-            "role": "user",
-            "content": "请基于以上对话内容，作为情感调解专家，提供建设性的沟通建议，帮助双方理解彼此：\n" + latest_message,
-            "content_type": "text",
-            "type": "question"
-        }]
+        # 【方案1】立即保存"思考中"占位消息，让两个用户都能看到
+        thinking_msg = LoungeChat(
+            room_id=room_id, 
+            user_id=None, 
+            role='assistant', 
+            content='🎯 情感教练正在分析...'
+        )
+        thinking_msg.save()
+        print(f"[Lounge AI] 已保存思考中占位消息，ID: {thinking_msg.id}", flush=True)
 
-        payload = {
-            "bot_id": COZE_BOT_ID_LOUNGE,
-            "user_id": room_id,
-            "stream": True,
-            "auto_save_history": True,
-            "additional_messages": messages
-        }
+        # 获取最近的对话记录（最近10条）
+        all_history = LoungeChat.filter(room_id=room_id)
+        all_history.sort(key=lambda x: x.created_at, reverse=True)
+        history = all_history[:10]
 
-        response = requests.post(COZE_API_URL, headers=headers, json=payload, timeout=60, stream=True)
-        response.raise_for_status()
+        # 构建对话历史（排除刚才的占位消息）
+        latest_message = ""
+        for msg in reversed(history):
+            if msg.role == "user":
+                latest_message += f"{msg.content}\n"
 
-        current_event = None
-        final_content = ""
-        
-        # 预先创建AI消息记录（边流式边保存策略）
-        ai_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content="")
-        ai_msg.save()  # 先保存一次，获取ID
-        last_save_time = time.time()
-        save_interval = 2.0  # 每2秒保存一次
-
-        for line in response.iter_lines():
-            if line:
-                try:
-                    line_text = line.decode('utf-8')
-
-                    # 处理 event: 行
-                    if line_text.startswith('event:'):
-                        current_event = line_text[6:].strip()
-                        continue
-
-                    # 处理 data: 行
-                    if line_text.startswith('data:'):
-                        json_str = line_text[5:].strip()
-                        if json_str == '[DONE]' or json_str == '"[DONE]"':
-                            break
-
-                        if not json_str:
-                            continue
-
-                        try:
-                            data = json.loads(json_str)
-                        except json.JSONDecodeError:
-                            continue
-
-                        if not isinstance(data, dict):
-                            continue
-
-                        # 跳过元数据消息
-                        if data.get('msg_type'):
-                            continue
-
-                        role = data.get('role')
-                        msg_type_field = data.get('type')
-
-                        # 处理流式内容 (delta 事件)
-                        if current_event == 'conversation.message.delta' and role == 'assistant' and msg_type_field == 'answer':
-                            content = data.get('content', '')
-                            if content:
-                                final_content += content
-                                # 流式推送到前端
-                                emit('ai_stream', {'type': 'delta', 'content': content}, room=room_id)
-                                socketio.sleep(0)  # 让出控制权，确保消息及时发送
-                                
-                                # 定期保存（边流式边保存，防止数据丢失）
-                                current_time = time.time()
-                                if current_time - last_save_time >= save_interval:
-                                    ai_msg.content = final_content
-                                    save_message_async(ai_msg)
-                                    last_save_time = current_time
-
-                        # 处理完成事件
-                        elif current_event == 'conversation.message.completed' and role == 'assistant':
-                            if msg_type_field == 'answer':
-                                # 流式结束信号
-                                emit('ai_stream', {'type': 'done'}, room=room_id)
-
-                except Exception as e:
-                    print(f"[Lounge Stream Error] {e}", flush=True)
-                    continue
-
-        # 最终保存完整内容
-        if final_content:
-            ai_msg.content = final_content
-            ai_msg.save()  # 同步保存最终版本
-            print(f"[Lounge Stream] 最终保存内容长度: {len(final_content)}", flush=True)
+        if not latest_message.strip():
+            ai_reply = "暂时没有对话内容可供分析哦～"
         else:
-            # 如果没有收到内容，更新为默认消息
-            ai_reply = "AI 未返回有效回复，请稍后重试"
-            ai_msg.content = ai_reply
-            ai_msg.save()
-            emit('ai_stream', {'type': 'delta', 'content': ai_reply}, room=room_id)
-            emit('ai_stream', {'type': 'done'}, room=room_id)
+            # 调用 AI（使用非流式版本）
+            print(f"[Lounge AI] 开始调用 Coze API，消息长度: {len(latest_message)}", flush=True)
+            ai_reply = call_coze_api(
+                user_phone=room_id,
+                message="请基于以上对话内容，作为情感调解专家，提供建设性的沟通建议，帮助双方理解彼此：\n" + latest_message,
+                bot_id=COZE_BOT_ID_LOUNGE,
+                conversation_history=None
+            )
+            print(f"[Lounge AI] Coze API 返回，回复长度: {len(ai_reply)}", flush=True)
 
+        # 【方案1】更新同一条消息为真实回复（而不是新建）
+        thinking_msg.content = ai_reply
+        thinking_msg.save()
+        print(f"[Lounge AI] 已更新消息为真实回复，ID: {thinking_msg.id}", flush=True)
+
+        # 手动构建返回数据
+        response_data = {
+            'success': True,
+            'message': {
+                'id': thinking_msg.id,
+                'room_id': thinking_msg.room_id,
+                'user_id': thinking_msg.user_id,
+                'role': thinking_msg.role,
+                'content': thinking_msg.content,
+                'created_at': thinking_msg.created_at.isoformat() if hasattr(thinking_msg.created_at, 'isoformat') else str(thinking_msg.created_at)
+            }
+        }
+        
+        return jsonify(response_data)
+    
     except Exception as e:
-        print(f"[Lounge AI Error] {e}", flush=True)
-        ai_reply = f"AI 调用失败: {str(e)}"
-        ai_msg = LoungeChat(room_id=room_id, user_id=None, role='assistant', content=ai_reply)
-        ai_msg.save()
-        emit('ai_stream', {'type': 'delta', 'content': ai_reply}, room=room_id)
-        emit('ai_stream', {'type': 'done'}, room=room_id)
+        print(f"[Lounge AI Error] {type(e).__name__}: {str(e)}", flush=True)
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'AI 调用失败: {str(e)}'
+        }), 500
 
 
 # ==================== 前端路由 ====================
@@ -1067,7 +1005,13 @@ def coach():
 
 @app.route('/lounge')
 def lounge():
-    """情感客厅"""
+    """情感客厅（短轮询版本）"""
+    return render_template('lounge_polling.html')
+
+
+@app.route('/lounge/websocket')
+def lounge_websocket():
+    """情感客厅（WebSocket 版本 - 备用）"""
     return render_template('lounge.html')
 
 
@@ -1084,7 +1028,8 @@ if __name__ == '__main__':
     print("\n" + "="*60, flush=True)
     print("[启动] 使用 SQLite 本地数据库", flush=True)
     print(f"[启动] 数据库路径: {DB_PATH}", flush=True)
+    print("[启动] 情感客厅使用短轮询方案（无需 WebSocket）", flush=True)
     print("="*60 + "\n", flush=True)
     
     debug_mode = os.environ.get('FLASK_ENV') != 'production'
-    socketio.run(app, debug=debug_mode, host='0.0.0.0', port=7860, allow_unsafe_werkzeug=True)
+    app.run(debug=debug_mode, host='0.0.0.0', port=7860)
