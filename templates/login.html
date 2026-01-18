@@ -35,6 +35,11 @@
                     <label>密码</label>
                     <input type="password" id="registerPassword" placeholder="请设置密码">
                 </div>
+                <div class="input-group">
+                    <label>昵称（选填）</label>
+                    <input type="text" id="registerNickname" placeholder="不填默认为手机号后4位" maxlength="20">
+                    <small style="color: var(--home-muted); font-size: 12px; margin-top: 4px; display: block;">最长20个字符</small>
+                </div>
                 <button class="btn btn-primary" onclick="register()">注册</button>
                 <button class="btn btn-secondary" onclick="showLogin()">返回登录</button>
             </div>
@@ -113,6 +118,7 @@
         async function register() {
             const phone = document.getElementById('registerPhone').value;
             const password = document.getElementById('registerPassword').value;
+            const nickname = document.getElementById('registerNickname').value.trim();
 
             if (!phone || !password) {
                 showToast('请填写手机号和密码', 'error');
@@ -125,7 +131,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ phone, password })
+                    body: JSON.stringify({ phone, password, nickname })
                 });
 
                 const data = await response.json();

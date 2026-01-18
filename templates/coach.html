@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人教练 - Between Us</title>  
     <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/emoji-picker.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         /* 微信风格聊天布局 */
@@ -1277,7 +1278,24 @@
 
         // 初始化
         loadHistory();
+        
+        // 初始化 Emoji 选择器
+        let emojiPicker = null;
+        function initEmojiPicker() {
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput && !emojiPicker) {
+                emojiPicker = new EmojiPicker(messageInput, {
+                    position: 'top'
+                });
+            }
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            initEmojiPicker();
+        });
     </script>
+    <script src="/static/js/emoji-picker.js"></script>
 </body>
 
 </html>
