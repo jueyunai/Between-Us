@@ -18,6 +18,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 app.config['JSON_AS_ASCII'] = False  # 支持中文 JSON 响应
 
+# Session Cookie 配置（修复 iOS 登录闪退问题）
+app.config['SESSION_COOKIE_SECURE'] = True      # HTTPS 环境必须
+app.config['SESSION_COOKIE_HTTPONLY'] = True    # 防止 JS 访问
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'   # iOS 必需，允许顶级导航
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7天有效期
+
 CORS(app)
 
 # Coze API 配置
@@ -330,7 +336,8 @@ def login():
     if not user:
         return jsonify({'success': False, 'message': '手机号或密码错误'}), 401
 
-    # 设置 session
+    # 设置 session（永久会话，使用配置的过期时间）
+    session.permanent = True
     session['user_id'] = user.id
 
     return jsonify({
