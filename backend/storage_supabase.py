@@ -40,8 +40,8 @@ def supabase():
 
 class User:
     """用户模型"""
-    
-    def __init__(self, phone, password, binding_code=None, partner_id=None, unbind_at=None, created_at=None, id=None):
+
+    def __init__(self, phone, password, binding_code=None, partner_id=None, unbind_at=None, created_at=None, id=None, nickname=None):
         self.id = id
         self.phone = phone
         self.password = password
@@ -49,6 +49,7 @@ class User:
         self.partner_id = partner_id
         self.unbind_at = unbind_at
         self.created_at = created_at or datetime.now()
+        self.nickname = nickname or phone[-4:]  # 默认使用手机号后4位
     
     def generate_binding_code(self):
         """生成6位绑定码"""
@@ -59,6 +60,7 @@ class User:
         return {
             'id': self.id,
             'phone': self.phone,
+            'nickname': self.nickname,
             'binding_code': self.binding_code,
             'partner_id': self.partner_id,
             'has_partner': self.partner_id is not None,
@@ -108,7 +110,8 @@ class User:
             binding_code=data.get('binding_code'),
             partner_id=data.get('partner_id'),
             unbind_at=unbind_at,
-            created_at=created_at
+            created_at=created_at,
+            nickname=data.get('nickname')
         )
     
     def save(self):
@@ -119,6 +122,7 @@ class User:
             'binding_code': self.binding_code,
             'partner_id': self.partner_id,
             'unbind_at': self.unbind_at.isoformat() if isinstance(self.unbind_at, datetime) else self.unbind_at,
+            'nickname': self.nickname,
         }
         
         # 移除 None 值
