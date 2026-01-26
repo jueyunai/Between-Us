@@ -1473,13 +1473,12 @@ def lounge():
 
 if __name__ == '__main__':
     import os
-    from storage_sqlite import DB_PATH
-    
+
     print("\n" + "="*60, flush=True)
-    print("[启动] 使用 SQLite 本地数据库", flush=True)
-    print(f"[启动] 数据库路径: {DB_PATH}", flush=True)
+    print("[启动] 使用 Supabase PostgreSQL 数据库", flush=True)
     print("[启动] 情感客厅使用短轮询方案（无需 WebSocket）", flush=True)
     print("="*60 + "\n", flush=True)
-    
+
     debug_mode = os.environ.get('FLASK_ENV') != 'production'
-    app.run(debug=debug_mode, host='0.0.0.0', port=7860)
+    port = int(os.environ.get('PORT', 7860))
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)

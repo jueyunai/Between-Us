@@ -20,11 +20,12 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 COPY . .
 
 # 暴露应用端口
-EXPOSE 7860
+EXPOSE 8080
 
 # 设置环境变量
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
+ENV PORT=8080
 
-# 运行应用（ModelScope 会通过环境变量注入配置）
+# 运行应用
 CMD ["python", "app.py"]
