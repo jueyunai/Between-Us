@@ -1,0 +1,167 @@
+.home-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+  padding: 48px 24px 32px;
+  box-sizing: border-box;
+}
+
+.home-header {
+  margin-bottom: 32px;
+}
+
+.greeting {
+  display: block;
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  display: block;
+  font-size: 16px;
+  color: #999;
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.menu-card {
+  display: flex;
+  align-items: center;
+  padding: 24px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.coach {
+    background: linear-gradient(135deg, #e8f5e9 0%, #fff 100%);
+    border: 1px solid rgba(76, 175, 80, 0.2);
+  }
+
+  &.lounge {
+    background: linear-gradient(135deg, #fce4ec 0%, #fff 100%);
+    border: 1px solid rgba(233, 30, 99, 0.2);
+  }
+}
+
+.card-icon {
+  font-size: 40px;
+  margin-right: 16px;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-title {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.card-desc {
+  display: block;
+  font-size: 14px;
+  color: #999;
+}
+
+.partner-section {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.partner-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 12px;
+
+  &.bound {
+    background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+  }
+}
+
+.status-icon {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+.status-text {
+  font-size: 16px;
+  color: #e91e63;
+  font-weight: 500;
+}
+
+.partner-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
+  border: none;
+  color: #fff;
+
+  &.outline {
+    background: #fff;
+    border: 1px solid #e91e63;
+    color: #e91e63;
+  }
+}
+
+.footer-actions {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.logout-btn {
+  color: #999;
+  font-size: 14px;
+}
+
+.bind-dialog-content {
+  padding: 16px 0;
+}
+
+.bind-input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 16px;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #e91e63;
+    outline: none;
+  }
+}
