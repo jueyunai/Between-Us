@@ -1,30 +1,90 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, render_template, session, Response, stream_with_context
 from flask_cors import CORS
-from storage_sqlite import User, Relationship, CoachChat, LoungeChat
+from storage_supabase import User, Relationship, CoachChat, LoungeChat
 from datetime import datetime, timedelta
+from functools import wraps
 import secrets
 import os
 import requests
 import json
 import threading
 import time
+import jwt
 from dotenv import load_dotenv
 
 # 加载环境变量
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = secrets.token_hex(32)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['JSON_AS_ASCII'] = False  # 支持中文 JSON 响应
 
-# Session Cookie 配置（修复 iOS 登录闪退问题）
-app.config['SESSION_COOKIE_SECURE'] = True      # HTTPS 环境必须
-app.config['SESSION_COOKIE_HTTPONLY'] = True    # 防止 JS 访问
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'   # iOS 必需，允许顶级导航
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7天有效期
+# JWT 配置
+JWT_SECRET = os.getenv('JWT_SECRET', app.config['SECRET_KEY'])
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_DAYS = 7
 
-CORS(app)
+# Session Cookie 配置（保留兼容，但前后端分离后主要用 JWT）
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # 跨域需要 None
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+
+# CORS 配置（支持跨域请求）
+CORS(app, supports_credentials=True, origins=[
+    'http://localhost:10086',           # Taro 本地开发
+    'http://localhost:3000',            # 备用本地端口
+    'http://127.0.0.1:10086',
+    'https://*.vercel.app',             # Vercel 部署
+    'https://*.zeabur.app',             # Zeabur 部署
+])
+
+
+# ==================== JWT 认证工具 ====================
+def create_token(user_id):
+    """创建 JWT Token"""
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.utcnow() + timedelta(days=JWT_EXPIRATION_DAYS),
+        'iat': datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def get_current_user():
+    """获取当前用户（支持 JWT 和 Session 两种方式）"""
+    # 优先检查 JWT Token
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            user = User.get(payload['user_id'])
+            if user:
+                return user
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+
+    # 回退到 Session 认证
+    user_id = session.get('user_id')
+    if user_id:
+        return User.get(user_id)
+
+    return None
+
+
+def token_required(f):
+    """JWT 认证装饰器（同时支持 Session）"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '未登录或 Token 无效'}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
 
 # Coze API 配置
 COZE_API_URL = "https://api.coze.cn/v3/chat"
@@ -336,13 +396,17 @@ def login():
     if not user:
         return jsonify({'success': False, 'message': '手机号或密码错误'}), 401
 
-    # 设置 session（永久会话，使用配置的过期时间）
+    # 生成 JWT Token
+    token = create_token(user.id)
+
+    # 同时设置 session（向后兼容）
     session.permanent = True
     session['user_id'] = user.id
 
     return jsonify({
         'success': True,
         'message': '登录成功',
+        'token': token,  # 前端应保存此 token
         'user': user.to_dict()
     })
 
@@ -357,25 +421,21 @@ def logout():
 @app.route('/api/user/info', methods=['GET'])
 def get_user_info():
     """获取用户信息"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
-
-    user = User.get(user_id)
-    if not user:
-        return jsonify({'success': False, 'message': '用户不存在'}), 404
 
     return jsonify({
         'success': True,
-        'user': user.to_dict()
+        'user': current_user.to_dict()
     })
 
 
 @app.route('/api/user/<int:user_id>', methods=['GET'])
 def get_user_by_id(user_id):
     """根据ID获取用户信息（只返回基本信息）"""
-    current_user_id = session.get('user_id')
-    if not current_user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     user = User.get(user_id)
@@ -396,8 +456,8 @@ def get_user_by_id(user_id):
 @app.route('/api/user/update_nickname', methods=['POST'])
 def update_nickname():
     """更新用户昵称"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     data = request.json
@@ -409,9 +469,7 @@ def update_nickname():
     if len(nickname) > 20:
         return jsonify({'success': False, 'message': '昵称最长20个字符'}), 400
 
-    user = User.get(user_id)
-    if not user:
-        return jsonify({'success': False, 'message': '用户不存在'}), 404
+    user = current_user
 
     user.nickname = nickname
     user.save()
@@ -427,11 +485,11 @@ def update_nickname():
 @app.route('/api/binding/code', methods=['GET'])
 def get_binding_code():
     """获取绑定码"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
-    user = User.get(user_id)
+    user = current_user
     if not user.binding_code:
         user.generate_binding_code()
         user.save()
@@ -445,14 +503,14 @@ def get_binding_code():
 @app.route('/api/binding/bind', methods=['POST'])
 def bind_partner():
     """使用绑定码绑定伴侣"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     data = request.json
     binding_code = data.get('binding_code')
 
-    user = User.get(user_id)
+    user = current_user
     partners = User.filter(binding_code=binding_code)
     partner = partners[0] if partners else None
 
@@ -493,11 +551,11 @@ def bind_partner():
 @app.route('/api/binding/unbind', methods=['POST'])
 def unbind_partner():
     """解绑伴侣"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
-    user = User.get(user_id)
+    user = current_user
     if not user.partner_id:
         return jsonify({'success': False, 'message': '您还没有绑定伴侣'}), 400
 
@@ -531,11 +589,11 @@ def unbind_partner():
 @app.route('/api/binding/cancel_unbind', methods=['POST'])
 def cancel_unbind():
     """撤销解绑"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
-    user = User.get(user_id)
+    user = current_user
     if not user.unbind_at:
         return jsonify({'success': False, 'message': '没有待撤销的解绑'}), 400
 
@@ -573,8 +631,8 @@ def cancel_unbind():
 @app.route('/api/coach/chat', methods=['POST'])
 def coach_chat():
     """个人教练聊天"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     data = request.json
@@ -584,7 +642,8 @@ def coach_chat():
         return jsonify({'success': False, 'message': '消息不能为空'}), 400
 
     # 获取用户信息
-    user = User.get(user_id)
+    user = current_user
+    user_id = user.id
     user_phone = user.phone
 
     # 保存用户消息
@@ -618,10 +677,11 @@ def coach_chat():
 @app.route('/api/coach/history', methods=['GET'])
 def get_coach_history():
     """获取个人教练聊天记录"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
+    user_id = current_user.id
     history = CoachChat.filter(user_id=user_id)
     history.sort(key=lambda x: x.created_at)
 
@@ -653,11 +713,15 @@ def coach_chat_stream():
     """个人教练流式聊天 - 实时推送思考过程和正文"""
     print(f"\n{'='*60}", flush=True)
     print(f"[Coach Stream] 收到流式聊天请求", flush=True)
-    
-    user_id = session.get('user_id')
-    if not user_id:
+
+    current_user = get_current_user()
+    if not current_user:
         print(f"[Coach Stream] 用户未登录", flush=True)
         return jsonify({'success': False, 'message': '未登录'}), 401
+
+    user = current_user
+    user_id = user.id
+    user_phone = user.phone
 
     data = request.json
     message = data.get('message')
@@ -668,10 +732,8 @@ def coach_chat_stream():
         print(f"[Coach Stream] 消息为空", flush=True)
         return jsonify({'success': False, 'message': '消息不能为空'}), 400
 
-    # 获取用户信息
-    print(f"[Coach Stream] 开始获取用户信息...", flush=True)
-    user = User.get(user_id)
-    user_phone = user.phone
+    # 用户信息已获取
+    print(f"[Coach Stream] 用户手机号: {user_phone}", flush=True)
     print(f"[Coach Stream] 用户手机号: {user_phone}", flush=True)
 
     # 异步保存用户消息（不阻塞）
@@ -877,11 +939,11 @@ def coach_chat_stream():
 @app.route('/api/lounge/room', methods=['GET'])
 def get_lounge_room():
     """获取情感客厅房间信息"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
-    user = User.get(user_id)
+    user = current_user
     if not user.partner_id:
         return jsonify({'success': False, 'message': '您还没有绑定伴侣'}), 400
 
@@ -905,11 +967,11 @@ def get_lounge_room():
 @app.route('/api/lounge/history', methods=['GET'])
 def get_lounge_history():
     """获取情感客厅聊天记录"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
-    user = User.get(user_id)
+    user = current_user
     # 查找用户相关的关系
     all_relationships = Relationship.all()
     relationships = [
@@ -933,13 +995,13 @@ def get_lounge_history():
 @app.route('/api/lounge/messages/new', methods=['GET'])
 def get_new_lounge_messages():
     """获取新消息（短轮询）"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     since_id = request.args.get('since_id', 0, type=int)
-    
-    user = User.get(user_id)
+
+    user = current_user
     all_relationships = Relationship.all()
     relationships = [
         r for r in all_relationships 
@@ -964,10 +1026,11 @@ def get_new_lounge_messages():
 @app.route('/api/lounge/send', methods=['POST'])
 def send_lounge_message():
     """发送消息到情感客厅（短轮询版本）"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
+    user_id = current_user.id
     data = request.json
     room_id = data.get('room_id')
     content = data.get('content')
@@ -989,12 +1052,12 @@ def send_lounge_message():
 def call_lounge_ai():
     """
     召唤 AI 助手（短轮询版本 - 非流式）
-    
+
     ⚠️ 已弃用：前端已改用流式版本 /api/lounge/call_ai/stream
     保留此接口仅为兼容性考虑，新功能请在流式版本中实现
     """
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     try:
@@ -1104,8 +1167,8 @@ def call_lounge_ai():
 @app.route('/api/lounge/call_ai/stream', methods=['POST'])
 def call_lounge_ai_stream():
     """召唤 AI 助手（流式版本）"""
-    user_id = session.get('user_id')
-    if not user_id:
+    current_user = get_current_user()
+    if not current_user:
         return jsonify({'success': False, 'message': '未登录'}), 401
 
     data = request.json

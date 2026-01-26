@@ -3,5 +3,7 @@ Flask-CORS==4.0.0
 werkzeug==3.0.1
 python-dotenv==1.0.1
 requests==2.31.0
+PyJWT==2.8.0
+gunicorn==21.2.0
 # Supabase 稳定版（Python 3.9 兼容，2024年3月发布）
 supabase==2.9.0

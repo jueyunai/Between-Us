@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.zeabur.app/zeabur.json",
+  "build": {
+    "type": "python"
+  },
+  "start": {
+    "command": "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+  }
+}
